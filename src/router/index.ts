@@ -5,6 +5,7 @@ const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes: [
     { path: '/', name: 'home', component: () => import('@/pages/HomePage.vue'), meta: { requiresAuth: true } },
+    { path: '/adicionar', name: 'add-media', component: () => import('@/pages/AddMediaPage.vue'), meta: { requiresAuth: true } },
     { path: '/login', name: 'login', component: () => import('@/pages/LoginPage.vue'), meta: { guestOnly: true } },
     { path: '/cadastro', name: 'register', component: () => import('@/pages/RegisterPage.vue'), meta: { guestOnly: true } },
     { path: '/:pathMatch(.*)*', redirect: '/' },
