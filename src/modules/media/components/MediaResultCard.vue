@@ -3,7 +3,7 @@ import { Film, Tv } from 'lucide-vue-next'
 import { posterUrl, releaseYear } from '../services/media.service'
 import { MEDIA_TYPE_LABELS, type TmdbSearchResult } from '../types'
 
-const props = defineProps<{ item: TmdbSearchResult; selected: boolean }>()
+const props = defineProps<{ item: TmdbSearchResult; selected: boolean; note?: string }>()
 const emit = defineEmits<{ select: [item: TmdbSearchResult] }>()
 </script>
 
@@ -32,6 +32,7 @@ const emit = defineEmits<{ select: [item: TmdbSearchResult] }>()
         <Film v-else class="h-4 w-4" aria-hidden="true" />
         {{ MEDIA_TYPE_LABELS[props.item.media_type] }} · {{ releaseYear(props.item.release_date) }}
       </p>
+      <p v-if="props.note" class="mt-1 text-xs text-amber-300">{{ props.note }}</p>
     </div>
   </button>
 </template>

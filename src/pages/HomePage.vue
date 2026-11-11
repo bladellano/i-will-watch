@@ -1,14 +1,17 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
 import { RouterLink } from 'vue-router'
-import { FolderPlus, Pencil, Plus, Trash2 } from 'lucide-vue-next'
+import { Camera, FolderPlus, Pencil, Plus, Trash2 } from 'lucide-vue-next'
 import AppLayout from '@/layouts/AppLayout.vue'
 import ConfirmDialog from '@/components/ui/ConfirmDialog.vue'
 import ListFormDialog from '@/modules/lists/components/ListFormDialog.vue'
 import { useListsStore } from '@/modules/lists/stores/lists.store'
+import { useCapturesStore } from '@/modules/capture/stores/captures.store'
+import { CAPTURE_STATUS_LABELS } from '@/modules/capture/types'
 import type { ListSummary } from '@/modules/lists/types'
 
 const store = useListsStore()
+const captures = useCapturesStore()
 
 const formOpen = ref(false)
 const editing = ref<ListSummary | null>(null)
@@ -19,7 +22,10 @@ const deleting = ref<ListSummary | null>(null)
 const deleteBusy = ref(false)
 const actionError = ref('')
 
-onMounted(() => store.load())
+onMounted(() => {
+  void store.load()
+  void captures.load()
+})
 
 function openCreate() {
   editing.value = null
@@ -76,6 +82,12 @@ async function onConfirmDelete() {
           <FolderPlus class="h-4 w-4" aria-hidden="true" /> Nova lista
         </button>
         <RouterLink
+          :to="{ name: 'capture-new' }"
+          class="inline-flex items-center gap-1 rounded-lg border border-slate-700 px-3 py-2 text-sm hover:bg-slate-800"
+        >
+          <Camera class="h-4 w-4" aria-hidden="true" /> Nova captura
+        </RouterLink>
+        <RouterLink
           :to="{ name: 'add-media' }"
           class="inline-flex items-center gap-1 rounded-lg bg-indigo-500 px-3 py-2 text-sm font-medium text-white hover:bg-indigo-400"
         >
@@ -123,6 +135,25 @@ async function onConfirmDelete() {
         <p class="mt-2 text-sm text-slate-300">{{ list.item_count }} {{ list.item_count === 1 ? 'obra' : 'obras' }}</p>
       </li>
     </ul>
+
+    <section v-if="captures.items.length > 0 || captures.error" class="mt-10" aria-label="Capturas pendentes">
+      <h2 class="text-lg font-medium">Capturas pendentes</h2>
+      <p v-if="captures.error" role="alert" class="mt-3 text-sm text-red-400">
+        {{ captures.error }}
+        <button type="button" class="ml-2 underline" @click="captures.load()">Tentar de novo</button>
+      </p>
+      <ul class="mt-3 space-y-2">
+        <li v-for="item in captures.items" :key="item.id">
+          <RouterLink
+            :to="{ name: 'capture', params: { id: item.id } }"
+            class="flex items-center justify-between gap-3 rounded-xl border border-slate-800 bg-slate-900/60 px-4 py-3 hover:bg-slate-800/60"
+          >
+            <span class="min-w-0 truncate">{{ item.input_title ?? (item.image_path ? 'Captura de imagem' : item.input_url) }}</span>
+            <span class="shrink-0 rounded-full bg-slate-800 px-2.5 py-0.5 text-xs">{{ CAPTURE_STATUS_LABELS[item.status] }}</span>
+          </RouterLink>
+        </li>
+      </ul>
+    </section>
 
     <ListFormDialog
       :open="formOpen"

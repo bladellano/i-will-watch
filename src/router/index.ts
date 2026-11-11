@@ -13,6 +13,8 @@ const router = createRouter({
       component: () => import('@/pages/MediaDetailPage.vue'),
       meta: { requiresAuth: true },
     },
+    { path: '/capturar', name: 'capture-new', component: () => import('@/pages/CapturePage.vue'), meta: { requiresAuth: true } },
+    { path: '/capturas/:id', name: 'capture', component: () => import('@/pages/CaptureDetailPage.vue'), meta: { requiresAuth: true } },
     { path: '/login', name: 'login', component: () => import('@/pages/LoginPage.vue'), meta: { guestOnly: true } },
     { path: '/cadastro', name: 'register', component: () => import('@/pages/RegisterPage.vue'), meta: { guestOnly: true } },
     { path: '/:pathMatch(.*)*', redirect: '/' },

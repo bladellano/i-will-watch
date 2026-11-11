@@ -97,6 +97,39 @@ qualquer trecho anterior que pareça divergir.
 -   **Gerenciar listas:** criar, renomear, editar descrição e excluir
     (com confirmação) na tela inicial. A lista `default` não tem opção
     de excluir. Cada lista mostra a quantidade de obras.
+-   **Fluxo de captura (Etapa 4):** a tela `/capturar` salva a captura
+    (imagem opcional, título, URL e origem opcionais) com status
+    `pending`, sem chamar a IA, e leva a `/capturas/:id`, onde ficam
+    "Identificar com IA", "Buscar manualmente" e "Descartar". A tela
+    inicial lista as capturas pendentes.
+-   **Storage:** bucket privado `captures`, caminho
+    `{user_id}/{capture_id}.{ext}`, acesso somente à própria pasta.
+    Aceita JPEG, PNG e WebP, até 5 MB, e a imagem é enviada sem
+    redimensionar.
+-   **Controle de custo da IA:** aviso explícito antes de executar; cada
+    captura roda a IA com sucesso no máximo uma vez (só repete se
+    falhou ou não achou candidatos); teto de **10 identificações por
+    usuário a cada 24 horas** (janela móvel), registradas em
+    `ai_usage_log`. Nada roda no upload, em segundo plano ou agendado.
+-   **Resposta da IA:** até 3 candidatos (título, título original, tipo,
+    ano e confiança), validados e saneados pela função. Cada candidato
+    é buscado no TMDB e a tela mostra até 6 resultados, sem repetir.
+    Confiança baixa recebe aviso. Sem resultados, a captura fica
+    `failed` com mensagem e a busca manual continua disponível.
+-   **Modelo e chave:** Responses API da OpenAI com saída estruturada
+    (JSON Schema estrito), `store: false` e modelo padrão `gpt-5-mini`,
+    trocável pela secret `OPENAI_MODEL`. A chave fica na secret
+    `OPENAI_API_KEY`. Recomenda-se definir um limite mensal de gasto no
+    painel da OpenAI.
+-   **URL e origem:** a URL é só referência (http/https), nunca
+    acessada pelo backend e enviada à IA apenas como texto de contexto.
+    A origem é texto livre opcional. Ambas ficam em `capture_requests`.
+-   **Conclusão da captura:** ao confirmar um candidato (ou resolver
+    pela busca manual), a `add-media` recebe `capture_id`, confirma que
+    a captura é do usuário, grava `selected_media_id`, muda o status
+    para `completed` e apaga a imagem do Storage (`image_path` vira
+    nulo).
+-   **Descartar captura:** apaga o arquivo e o registro.
 
 ## 3. Stack tecnológica
 
@@ -391,6 +424,32 @@ Estados possíveis:
 O registro de captura não deve obrigar a execução da IA. Uma captura
 pode permanecer sem reconhecimento e ser resolvida manualmente.
 
+**Regras adicionadas na Etapa 4**
+
+-   O cliente só cria e lê capturas: pode gravar apenas `id`,
+    `image_path`, `input_title`, `input_url` e `source`. `status`,
+    `ai_result`, `selected_media_id`, `error_message` e `processed_at`
+    são alterados somente pelas Edge Functions.
+-   `image_path` deve começar com o `user_id` do dono. Limites:
+    título até 200 caracteres, URL até 2048 (http/https) e origem até
+    100.
+-   `processed_at` marca o início da última tentativa de identificação.
+    Uma captura em `processing` há mais de 5 minutos pode ser
+    reprocessada (proteção contra travamento).
+
+### `ai_usage_log`
+
+Registra cada execução da IA para limitar o uso e acompanhar custos.
+Somente as Edge Functions (service role) leem e gravam.
+
+-   `id`: UUID, chave primária.
+-   `user_id`: referência ao usuário.
+-   `capture_id`: captura relacionada, opcional (`ON DELETE SET NULL`).
+-   `model`: modelo utilizado.
+-   `input_tokens`, `output_tokens`: consumo informado pela OpenAI,
+    quando disponível.
+-   `created_at`: timestamp.
+
 ## 8. Segurança e acesso aos dados
 
 -   Ativar RLS nas tabelas que contêm dados privados do usuário.
@@ -525,7 +584,12 @@ npx supabase secrets set TMDB_API_TOKEN=seu_token
 
 A secret da OpenAI só será utilizada pela Edge Function responsável pelo
 reconhecimento opcional. A secret do TMDB será utilizada pelas funções
-de integração com o catálogo.
+de integração com o catálogo. Opcionalmente, `OPENAI_MODEL` troca o
+modelo padrão (`gpt-5-mini`):
+
+``` bash
+npx supabase secrets set OPENAI_MODEL=nome_do_modelo
+```
 
 ### CLI do Supabase
 
@@ -604,15 +668,22 @@ obras (criar listas, ver o conteúdo, editar dados pessoais e remover).
 
 ### Etapa 4 --- Captura de imagem e IA opcional
 
--   Implementar upload para Supabase Storage.
--   Criar registro em `capture_requests`.
--   Implementar formulário com título e URL opcionais.
--   Criar Edge Function para reconhecimento.
--   Integrar com OpenAI somente após ação explícita do usuário.
--   Interpretar resposta estruturada e pesquisar candidatos no TMDB.
--   Exibir candidatos e exigir confirmação.
--   Tratar falhas, baixa confiança e ausência de resultados.
--   Permitir seguir pelo cadastro manual sem executar IA.
+-   Bucket privado `captures` e políticas por pasta do usuário.
+-   Tela `/capturar`: imagem (JPEG, PNG, WebP, até 5 MB), título, URL e
+    origem opcionais; salva em Storage e em `capture_requests` sem
+    chamar a IA.
+-   Tela `/capturas/:id`: dados da captura e as ações "Identificar com
+    IA" (com aviso de custo), "Buscar manualmente" e "Descartar".
+-   Seção "Capturas pendentes" na tela inicial.
+-   Edge Function `identify-media`: valida o usuário e a captura,
+    aplica o teto de 10 execuções por 24 horas, reserva a captura de
+    forma atômica, envia imagem e contexto à OpenAI (saída estruturada),
+    busca candidatos no TMDB e grava o resultado.
+-   Exibir candidatos com indicação de confiança e exigir confirmação
+    antes de cadastrar.
+-   Tratar falhas, baixa confiança e ausência de resultados, sempre
+    permitindo o caminho manual.
+-   `add-media` conclui a captura e apaga a imagem.
 
 **Critério de conclusão:** reconhecimento funciona sob demanda, com
 custo controlado e confirmação antes de cadastrar.
@@ -644,7 +715,8 @@ comprometer a segurança dos dados.
 -   Etapa 1 --- Fundação: concluída e validada.
 -   Etapa 2 --- Catálogo e cadastro manual: concluída e validada.
 -   Etapa 3 --- Listas e detalhes: concluída e validada.
--   Etapas 4 a 6: não iniciadas.
+-   Etapa 4 --- Captura de imagem e IA opcional: concluída e validada.
+-   Etapas 5 e 6: não iniciadas.
 
 ## 12. Fora do escopo inicial
 

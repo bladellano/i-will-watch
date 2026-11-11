@@ -1,4 +1,4 @@
-import { supabase } from '@/services/supabase/client'
+import { invokeFunction } from '@/services/supabase/functions'
 import type { AddMediaResponse, MediaType, TmdbSearchResponse, WatchStatus } from '../types'
 
 const TMDB_IMAGE_BASE_URL = 'https://image.tmdb.org/t/p'
@@ -12,11 +12,11 @@ export function releaseYear(date: string | null): string {
 }
 
 export async function searchTmdb(query: string, page = 1): Promise<TmdbSearchResponse> {
-  const { data, error } = await supabase.functions.invoke<TmdbSearchResponse>('search-tmdb', {
-    body: { query, page },
-  })
-  if (error || !data) throw new Error('Não foi possível buscar no catálogo. Tente novamente.')
-  return data
+  return invokeFunction<TmdbSearchResponse>(
+    'search-tmdb',
+    { query, page },
+    'Não foi possível buscar no catálogo. Tente novamente.',
+  )
 }
 
 export interface AddMediaInput {
@@ -24,17 +24,20 @@ export interface AddMediaInput {
   mediaType: MediaType
   listId: string
   status: WatchStatus
+  /** Quando a obra vem de uma captura, conclui a captura junto. */
+  captureId?: string
 }
 
 export async function addMedia(input: AddMediaInput): Promise<AddMediaResponse> {
-  const { data, error } = await supabase.functions.invoke<AddMediaResponse>('add-media', {
-    body: {
+  return invokeFunction<AddMediaResponse>(
+    'add-media',
+    {
       tmdb_id: input.tmdbId,
       media_type: input.mediaType,
       list_id: input.listId,
       status: input.status,
+      ...(input.captureId ? { capture_id: input.captureId } : {}),
     },
-  })
-  if (error || !data) throw new Error('Não foi possível adicionar a obra. Tente novamente.')
-  return data
+    'Não foi possível adicionar a obra. Tente novamente.',
+  )
 }

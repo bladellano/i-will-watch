@@ -1,20 +1,22 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
-import { RouterLink } from 'vue-router'
+import { RouterLink, useRoute, useRouter } from 'vue-router'
 import { ArrowLeft, Search } from 'lucide-vue-next'
 import AppLayout from '@/layouts/AppLayout.vue'
 import MediaResultCard from '@/modules/media/components/MediaResultCard.vue'
-import { addMedia, posterUrl, releaseYear, searchTmdb } from '@/modules/media/services/media.service'
-import {
-  MEDIA_TYPE_LABELS,
-  WATCH_STATUS_LABELS,
-  type TmdbSearchResult,
-  type WatchStatus,
-} from '@/modules/media/types'
+import MediaConfirmPanel from '@/modules/media/components/MediaConfirmPanel.vue'
+import { addMedia, searchTmdb } from '@/modules/media/services/media.service'
+import type { TmdbSearchResult, WatchStatus } from '@/modules/media/types'
 import { fetchLists } from '@/modules/lists/services/lists.service'
 import type { UserList } from '@/modules/lists/types'
 
-const query = ref('')
+const route = useRoute()
+const router = useRouter()
+
+// Vindo de uma captura: título pré-preenchido e conclusão da captura ao adicionar.
+const captureId = typeof route.query.capture === 'string' ? route.query.capture : undefined
+
+const query = ref(typeof route.query.q === 'string' ? route.query.q : '')
 const lastQuery = ref('')
 const results = ref<TmdbSearchResult[]>([])
 const page = ref(0)
@@ -25,8 +27,6 @@ const searchError = ref('')
 
 const lists = ref<UserList[]>([])
 const selected = ref<TmdbSearchResult | null>(null)
-const listId = ref('')
-const status = ref<WatchStatus>('ASSISTIR')
 const saving = ref(false)
 const feedback = ref<{ type: 'success' | 'info' | 'error'; text: string } | null>(null)
 
@@ -35,10 +35,10 @@ const canLoadMore = computed(() => page.value > 0 && page.value < totalPages.val
 onMounted(async () => {
   try {
     lists.value = await fetchLists()
-    listId.value = lists.value[0]?.id ?? ''
   } catch (e) {
     feedback.value = { type: 'error', text: e instanceof Error ? e.message : 'Erro inesperado.' }
   }
+  if (query.value.trim()) onSubmit()
 })
 
 async function runSearch(nextPage: number) {
@@ -69,22 +69,27 @@ function onSubmit() {
 
 function onSelect(item: TmdbSearchResult) {
   selected.value = item
-  status.value = 'ASSISTIR'
   feedback.value = null
 }
 
-async function onConfirm() {
-  if (!selected.value || !listId.value) return
+async function onConfirm(choice: { listId: string; status: WatchStatus }) {
+  if (!selected.value) return
   saving.value = true
   feedback.value = null
   try {
     const response = await addMedia({
       tmdbId: selected.value.tmdb_id,
       mediaType: selected.value.media_type,
-      listId: listId.value,
-      status: status.value,
+      listId: choice.listId,
+      status: choice.status,
+      captureId,
     })
-    const listName = lists.value.find((l) => l.id === listId.value)?.name ?? 'lista'
+    if (captureId) {
+      // A captura foi concluída pela função; segue para a lista de destino.
+      await router.push({ name: 'list', params: { listaId: choice.listId } })
+      return
+    }
+    const listName = lists.value.find((l) => l.id === choice.listId)?.name ?? 'lista'
     feedback.value = response.already_in_list
       ? { type: 'info', text: `"${selected.value.title}" já está na lista ${listName}.` }
       : { type: 'success', text: `"${selected.value.title}" foi adicionada à lista ${listName}.` }
@@ -99,7 +104,10 @@ async function onConfirm() {
 
 <template>
   <AppLayout>
-    <RouterLink :to="{ name: 'home' }" class="mb-4 inline-flex items-center gap-1 text-sm text-slate-400 hover:text-slate-200">
+    <RouterLink
+      :to="captureId ? { name: 'capture', params: { id: captureId } } : { name: 'home' }"
+      class="mb-4 inline-flex items-center gap-1 text-sm text-slate-400 hover:text-slate-200"
+    >
       <ArrowLeft class="h-4 w-4" aria-hidden="true" /> Voltar
     </RouterLink>
     <h2 class="text-lg font-medium">Adicionar filme ou série</h2>
@@ -125,8 +133,12 @@ async function onConfirm() {
     </form>
 
     <p v-if="searchError" role="alert" class="mt-3 text-sm text-red-400">{{ searchError }}</p>
-    <p v-if="feedback" :role="feedback.type === 'error' ? 'alert' : 'status'" class="mt-3 text-sm"
-       :class="{ 'text-emerald-400': feedback.type === 'success', 'text-amber-300': feedback.type === 'info', 'text-red-400': feedback.type === 'error' }">
+    <p
+      v-if="feedback"
+      :role="feedback.type === 'error' ? 'alert' : 'status'"
+      class="mt-3 text-sm"
+      :class="{ 'text-emerald-400': feedback.type === 'success', 'text-amber-300': feedback.type === 'info', 'text-red-400': feedback.type === 'error' }"
+    >
       {{ feedback.text }}
     </p>
 
@@ -137,7 +149,11 @@ async function onConfirm() {
         </p>
         <ul class="space-y-2">
           <li v-for="item in results" :key="`${item.media_type}-${item.tmdb_id}`">
-            <MediaResultCard :item="item" :selected="selected?.tmdb_id === item.tmdb_id && selected?.media_type === item.media_type" @select="onSelect" />
+            <MediaResultCard
+              :item="item"
+              :selected="selected?.tmdb_id === item.tmdb_id && selected?.media_type === item.media_type"
+              @select="onSelect"
+            />
           </li>
         </ul>
         <button
@@ -151,52 +167,7 @@ async function onConfirm() {
         </button>
       </section>
 
-      <section v-if="selected" aria-label="Prévia da obra" class="h-fit rounded-xl border border-slate-800 bg-slate-900/60 p-4">
-        <div class="flex gap-4">
-          <img
-            v-if="posterUrl(selected.poster_path)"
-            :src="posterUrl(selected.poster_path) ?? undefined"
-            :alt="`Capa de ${selected.title}`"
-            class="h-48 w-32 shrink-0 rounded-lg object-cover"
-          />
-          <div class="min-w-0">
-            <h3 class="font-semibold">{{ selected.title }}</h3>
-            <p v-if="selected.original_title && selected.original_title !== selected.title" class="text-sm text-slate-400">
-              {{ selected.original_title }}
-            </p>
-            <p class="mt-1 text-sm text-slate-400">
-              {{ MEDIA_TYPE_LABELS[selected.media_type] }} · {{ releaseYear(selected.release_date) }}
-            </p>
-            <p v-if="selected.tmdb_rating" class="mt-1 text-sm text-slate-300">
-              Nota TMDB: {{ selected.tmdb_rating.toFixed(1) }}
-            </p>
-          </div>
-        </div>
-        <p class="mt-3 line-clamp-6 text-sm text-slate-300">{{ selected.overview ?? 'Sinopse não disponível.' }}</p>
-
-        <div class="mt-4 grid gap-3 sm:grid-cols-2">
-          <div>
-            <label for="list" class="mb-1 block text-sm text-slate-300">Lista</label>
-            <select id="list" v-model="listId" class="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2">
-              <option v-for="l in lists" :key="l.id" :value="l.id">{{ l.name }}</option>
-            </select>
-          </div>
-          <div>
-            <label for="status" class="mb-1 block text-sm text-slate-300">Status</label>
-            <select id="status" v-model="status" class="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2">
-              <option v-for="(label, value) in WATCH_STATUS_LABELS" :key="value" :value="value">{{ label }}</option>
-            </select>
-          </div>
-        </div>
-        <button
-          type="button"
-          :disabled="saving || !listId"
-          class="mt-4 w-full rounded-lg bg-indigo-500 px-4 py-2 font-medium text-white hover:bg-indigo-400 disabled:cursor-not-allowed disabled:opacity-50"
-          @click="onConfirm"
-        >
-          {{ saving ? 'Adicionando…' : 'Confirmar inclusão' }}
-        </button>
-      </section>
+      <MediaConfirmPanel v-if="selected" :item="selected" :lists="lists" :busy="saving" @confirm="onConfirm" />
     </div>
   </AppLayout>
 </template>
