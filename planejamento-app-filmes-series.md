@@ -65,6 +65,38 @@ qualquer trecho anterior que pareça divergir.
     pastas exigidas pela etapa em andamento.
 -   **Gravação em `media`:** feita somente por Edge Function (service
     role), nunca diretamente pelo navegador (ver seções 7 e 8).
+-   **Busca no TMDB (Etapa 2):** endpoint de busca multi, resultados em
+    `pt-BR`, sem conteúdo adulto, descartando pessoas e mantendo apenas
+    filmes e séries. A busca dispara somente ao enviar o formulário
+    (não a cada tecla) e tem "Carregar mais".
+-   **Gravação de obras (Etapa 2):** o navegador envia apenas
+    `tmdb_id`, `media_type`, `list_id` e `status`. A Edge Function
+    `add-media` valida o usuário pelo JWT, confirma que a lista é dele,
+    busca os dados no TMDB e faz upsert em `media`. Se a obra já estiver
+    na lista, a resposta é "já está nesta lista", sem duplicar e sem
+    erro.
+-   **JWT nas Edge Functions:** `verify_jwt = false` no
+    `supabase/config.toml` e validação do usuário dentro de cada função
+    (`getUser`), compatível com as novas chaves publishable.
+-   **Gêneros (Etapa 3):** nova coluna `media.genres` (lista de nomes),
+    gravada pela `add-media`. Obras cadastradas antes dessa coluna ficam
+    sem gêneros até serem adicionadas de novo (a função atualiza `media`).
+-   **Nota pessoal:** opcional, inteiro de 1 a 10 (`CHECK` no banco).
+-   **Origem da indicação:** existe apenas para capturas (Etapa 4), em
+    `capture_requests`. Não faz parte da tela de detalhes na Etapa 3.
+-   **Data assistida:** preenchida com a data de hoje ao marcar
+    `ASSISTIDO` (editável) e limpa ao sair desse status.
+-   **Detalhes da obra:** rota `/listas/:listaId/obras/:vinculoId`,
+    porque status, nota e observações pertencem ao vínculo obra-lista.
+-   **Filtros e busca nas listas:** por status, tipo e título, feitos no
+    navegador sobre a lista carregada, sem paginação, ordenada pelas
+    mais recentes.
+-   **Remover obra de uma lista:** incluído, com confirmação. Remove só o
+    vínculo (`list_media`); a obra continua em `media` e nas outras
+    listas.
+-   **Gerenciar listas:** criar, renomear, editar descrição e excluir
+    (com confirmação) na tela inicial. A lista `default` não tem opção
+    de excluir. Cada lista mostra a quantidade de obras.
 
 ## 3. Stack tecnológica
 
@@ -219,11 +251,12 @@ pesquisar manualmente no TMDB.
 **Informações pessoais por obra**
 
 -   Status.
--   Nota pessoal (opcional).
+-   Nota pessoal (opcional, inteiro de 1 a 10).
 -   Observações.
 -   Data em que foi adicionada.
 -   Data em que foi assistida, quando aplicável.
--   Origem da indicação, quando disponível.
+-   Origem da indicação, quando disponível (somente para capturas, a
+    partir da Etapa 4; não exibida na Etapa 3).
 
 ### 5.5 Detalhes da obra
 
@@ -234,7 +267,7 @@ Exibir, quando disponíveis no TMDB:
 -   Capa e imagem de fundo.
 -   Sinopse.
 -   Data de lançamento ou primeira exibição.
--   Gêneros.
+-   Gêneros (`media.genres`, lista de nomes gravada pela `add-media`).
 -   Avaliação do TMDB.
 -   Identificador e link de referência no TMDB.
 
@@ -287,6 +320,7 @@ obra.
 -   `poster_path`: caminho da imagem de capa no TMDB.
 -   `backdrop_path`: caminho da imagem de fundo no TMDB.
 -   `tmdb_rating`: avaliação do TMDB.
+-   `genres`: lista de nomes de gêneros (`text[]`, padrão vazio).
 -   `created_at`: timestamp.
 
 Criar constraint única para `(tmdb_id, media_type)`.
@@ -310,7 +344,8 @@ Relaciona obras às listas dos usuários.
 -   `media_id`: referência a `media`.
 -   `status`: `ASSISTIR` (padrão), `ARQUIVADO` ou `ASSISTIDO`, com
     `CHECK` na coluna (ou enum do Postgres).
--   `personal_rating`: nota pessoal opcional.
+-   `personal_rating`: nota pessoal opcional, inteiro de 1 a 10
+    (`CHECK`).
 -   `notes`: observações opcionais.
 -   `added_at`: data de inclusão.
 -   `watched_at`: data em que foi assistida, quando aplicável.
@@ -375,7 +410,9 @@ pode permanecer sem reconhecimento e ser resolvida manualmente.
         em Edge Function com service role (upsert por
         `tmdb_id` + `media_type`).
 -   Definir políticas de acesso ao Storage por usuário.
--   Validar autenticação e autorização dentro das Edge Functions.
+-   Validar autenticação e autorização dentro das Edge Functions (a
+    identidade vem do JWT via `getUser`; as funções são publicadas com
+    `verify_jwt = false` por essa validação interna).
 -   Validar tipo, tamanho e conteúdo dos arquivos enviados.
 -   Manter secrets somente no ambiente do Supabase.
 -   Não confiar em `user_id` recebido diretamente do frontend: derivar a
@@ -546,18 +583,24 @@ chamada à OpenAI.
 
 ### Etapa 3 --- Listas e detalhes
 
--   Criar, renomear, editar descrição e excluir listas (exceto a lista
-    `default`, que só pode ser renomeada).
--   Criar página de visualização de uma lista, com filtro por status
-    (`ASSISTIR`, `ARQUIVADO`, `ASSISTIDO`).
--   Criar visualização de detalhes da obra.
--   Implementar alteração de status.
--   Implementar notas e observações pessoais.
--   Criar filtros e pesquisa nas listas.
--   Implementar estados vazios, carregamento e erros.
+-   Tela inicial com as listas do usuário e a quantidade de obras em
+    cada uma.
+-   Criar, renomear, editar a descrição e excluir listas (a lista
+    `default` só pode ser renomeada/editada).
+-   Página de uma lista (`/listas/:listaId`) com filtro por status, filtro
+    por tipo (filme ou série) e busca por título, feitos no navegador,
+    sem paginação.
+-   Página de detalhes (`/listas/:listaId/obras/:vinculoId`) com título,
+    título original, tipo, capa, imagem de fundo, sinopse, data, gêneros,
+    "Nota TMDB" e link para o TMDB.
+-   Alterar status, nota pessoal (1 a 10), observações e data assistida.
+-   Remover uma obra da lista, com confirmação.
+-   Estados vazios, de carregamento e de erro em todas as telas.
+-   Migration que adiciona `media.genres` e o `CHECK` da nota; a função
+    `add-media` passa a gravar os gêneros.
 
 **Critério de conclusão:** usuário consegue organizar e acompanhar suas
-obras.
+obras (criar listas, ver o conteúdo, editar dados pessoais e remover).
 
 ### Etapa 4 --- Captura de imagem e IA opcional
 
@@ -595,6 +638,13 @@ comprometer a segurança dos dados.
 -   Tratar acessibilidade, feedbacks e estados de erro.
 -   Revisar custos e quantidade de chamadas às APIs.
 -   Documentar configuração e publicação.
+
+## 11.1 Andamento
+
+-   Etapa 1 --- Fundação: concluída e validada.
+-   Etapa 2 --- Catálogo e cadastro manual: concluída e validada.
+-   Etapa 3 --- Listas e detalhes: concluída e validada.
+-   Etapas 4 a 6: não iniciadas.
 
 ## 12. Fora do escopo inicial
 

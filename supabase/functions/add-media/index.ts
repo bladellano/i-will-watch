@@ -37,13 +37,19 @@ Deno.serve(async (req) => {
 
     const details = await tmdbGet(`/${mediaType}/${tmdbId}`, { language: TMDB_LANGUAGE })
     const media = normalizeMedia({ ...details, id: tmdbId }, mediaType as MediaType)
+    // Gêneros vêm no endpoint de detalhes como [{ id, name }]; guardamos apenas os nomes.
+    const genres: string[] = Array.isArray(details.genres)
+      ? details.genres
+          .map((genre: { name?: unknown }) => genre.name)
+          .filter((name: unknown): name is string => typeof name === 'string' && name !== '')
+      : []
     if (!media.title) return errorResponse(502, 'Não foi possível obter os dados da obra.')
 
     // Catálogo compartilhado: escrita apenas com service role.
     const admin = createAdminClient()
     const { data: saved, error: mediaError } = await admin
       .from('media')
-      .upsert(media, { onConflict: 'tmdb_id,media_type' })
+      .upsert({ ...media, genres }, { onConflict: 'tmdb_id,media_type' })
       .select('id')
       .single()
     if (mediaError) throw mediaError
