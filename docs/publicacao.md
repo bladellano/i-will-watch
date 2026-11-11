@@ -34,6 +34,17 @@ Em Supabase → **Authentication → URL Configuration**:
 
 Sem isso, o link do e-mail de confirmação aponta para o endereço errado.
 
+### 3.1 E-mail de confirmação (SMTP próprio)
+
+O serviço de e-mail embutido do Supabase envia só **2 e-mails por hora no projeto inteiro** e só para membros da equipe. Com ele, o cadastro de outras pessoas falha com "Muitas tentativas" (código `over_email_send_rate_limit`). Antes de convidar usuários:
+
+1. Em **Authentication → Emails → SMTP Settings**, ative o SMTP personalizado (Gmail com **senha de app**, Resend, Brevo etc.). Nunca compartilhe essa senha em chats ou no repositório.
+2. Em **Authentication → Rate Limits**, ajuste o limite de e-mails por hora (padrão com SMTP próprio: 30).
+3. Confira a **Site URL**: se ficar `http://localhost:3000`, o link do e-mail de confirmação aponta para o endereço errado.
+4. Teste com um e-mail novo e veja também a pasta de spam.
+
+Alternativa para grupos pequenos e de confiança: desligar **Confirm email** em Authentication → Sign In / Providers → Email (o cadastro entra direto, sem verificação do e-mail).
+
 ## 4. Verificação pós-publicação
 
 1. Abra a URL em HTTPS, cadastre-se (ou entre) e confirme o e-mail.

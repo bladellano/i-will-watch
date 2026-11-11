@@ -796,6 +796,17 @@ publicação.
     visual e etiqueta "Fixado". RLS existente já protege o campo.
 -   Correções: painel de confirmação visível no celular; erro ao salvar
     nota (`parseRating`).
+-   **Nome do usuário:** o cadastro agora pede o nome (obrigatório, 1 a
+    80 caracteres), enviado em `user_metadata.name` e copiado para
+    `profiles.name` pelo gatilho `handle_new_user`. Nova página
+    `/perfil` (e-mail somente leitura + edição do nome) e o cabeçalho
+    mostra o nome, com o e-mail como alternativa enquanto não houver
+    nome. Migração `20261111170000_profile_name_rules.sql`: limite de
+    80 caracteres, normalização do nome e gatilho resistente a nomes
+    vazios/longos. Usuários anteriores ao ajuste ficam com nome vazio até
+    preencherem em `/perfil`.
+-   **Publicação:** `docs/publicacao.md` ganhou a seção 3.1 (SMTP
+    próprio, Site URL e limite de e-mails do Supabase).
 
 ## 11.1 Andamento
 

@@ -167,6 +167,19 @@ describe('media e ai_usage_log', () => {
 })
 
 describe('profiles', () => {
+  it('o usuário altera o próprio nome, mas não o de outro', async () => {
+    const mine = await a.from('profiles').update({ name: 'Teste RLS A' }).eq('id', aId).select('name')
+    expect(mine.error).toBeNull()
+    expect(mine.data?.[0]?.name).toBe('Teste RLS A')
+    const other = await b.from('profiles').update({ name: 'invadido' }).eq('id', aId).select('id')
+    expect(other.data ?? []).toEqual([])
+    const { data } = await a.from('profiles').select('name').eq('id', aId).single()
+    expect(data?.name).toBe('Teste RLS A')
+  })
+  it('o banco rejeita nome vazio ou acima de 80 caracteres', async () => {
+    expect((await a.from('profiles').update({ name: '' }).eq('id', aId)).error).not.toBeNull()
+    expect((await a.from('profiles').update({ name: 'x'.repeat(81) }).eq('id', aId)).error).not.toBeNull()
+  })
   it('cada usuário vê apenas o próprio perfil', async () => {
     const { data } = await b.from('profiles').select('id')
     expect(data?.map((p) => p.id)).toEqual([bId])

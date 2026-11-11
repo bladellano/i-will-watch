@@ -1,14 +1,24 @@
 <script setup lang="ts">
-import { LogOut, Clapperboard } from 'lucide-vue-next'
-import { useRouter } from 'vue-router'
+import { computed, onMounted } from 'vue'
+import { LogOut, Clapperboard, UserRound } from 'lucide-vue-next'
+import { RouterLink, useRouter } from 'vue-router'
+import { useProfileStore } from '@/modules/profile/stores/profile.store'
+import { displayName } from '@/modules/profile/utils/name'
 import { useAuthStore } from '@/modules/auth/stores/auth.store'
 import { signOut } from '@/modules/auth/services/auth.service'
 
 const auth = useAuthStore()
 const router = useRouter()
+const profile = useProfileStore()
+const shownName = computed(() => displayName(profile.name, auth.user?.email))
+
+onMounted(() => {
+  if (auth.user?.id) void profile.load(auth.user.id)
+})
 
 async function onSignOut() {
   await signOut()
+  profile.reset()
   await router.push({ name: 'login' })
 }
 </script>
@@ -28,7 +38,14 @@ async function onSignOut() {
           <h1>Minha lista</h1>
         </div>
         <div class="flex items-center gap-3 text-sm">
-          <span class="hidden truncate text-slate-400 sm:inline">{{ auth.user?.email }}</span>
+          <RouterLink
+            :to="{ name: 'profile' }"
+            class="inline-flex max-w-48 items-center gap-1 rounded-lg px-2 py-1.5 text-slate-300 hover:bg-slate-800 sm:max-w-64"
+            :aria-label="`Meu perfil (${shownName})`"
+          >
+            <UserRound class="h-4 w-4 shrink-0" aria-hidden="true" />
+            <span class="truncate">{{ shownName }}</span>
+          </RouterLink>
           <button
             type="button"
             class="inline-flex items-center gap-1 rounded-lg border border-slate-700 px-3 py-1.5 hover:bg-slate-800"

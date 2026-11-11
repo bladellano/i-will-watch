@@ -24,8 +24,12 @@ export async function signIn({ email, password }: Credentials) {
 }
 
 /** Retorna true quando a sessão já foi aberta; false quando exige confirmação por e-mail. */
-export async function signUp({ email, password }: Credentials): Promise<boolean> {
-  const { data, error } = await supabase.auth.signUp({ email, password })
+export async function signUp({ email, password, name }: Credentials & { name?: string }): Promise<boolean> {
+  const { data, error } = await supabase.auth.signUp({
+    email,
+    password,
+    options: { data: name ? { name } : undefined },
+  })
   if (error) throw toFriendlyError(error)
   return data.session !== null
 }

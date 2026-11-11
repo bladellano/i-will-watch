@@ -10,7 +10,7 @@ const loading = ref(false)
 const error = ref('')
 const needsConfirmation = ref(false)
 
-async function onSubmit(credentials: Credentials) {
+async function onSubmit(credentials: Credentials & { name?: string }) {
   loading.value = true
   error.value = ''
   try {
@@ -36,6 +36,7 @@ async function onSubmit(credentials: Credentials) {
       <AuthForm
         submit-label="Cadastrar"
         autocomplete-password="new-password"
+        with-name
         :loading="loading"
         :error="error"
         @submit="onSubmit"

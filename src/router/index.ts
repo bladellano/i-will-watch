@@ -13,6 +13,7 @@ const router = createRouter({
       component: () => import('@/pages/MediaDetailPage.vue'),
       meta: { requiresAuth: true },
     },
+    { path: '/perfil', name: 'profile', component: () => import('@/pages/ProfilePage.vue'), meta: { requiresAuth: true } },
     { path: '/capturar', name: 'capture-new', component: () => import('@/pages/CapturePage.vue'), meta: { requiresAuth: true } },
     { path: '/capturas/:id', name: 'capture', component: () => import('@/pages/CaptureDetailPage.vue'), meta: { requiresAuth: true } },
     { path: '/login', name: 'login', component: () => import('@/pages/LoginPage.vue'), meta: { guestOnly: true } },
@@ -40,6 +41,7 @@ const titles: Record<string, string> = {
   'list-item': 'Detalhes da obra',
   'capture-new': 'Nova captura',
   capture: 'Captura',
+  profile: 'Meu perfil',
   login: 'Entrar',
   register: 'Criar conta',
 }
