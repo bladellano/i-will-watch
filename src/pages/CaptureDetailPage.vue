@@ -127,7 +127,7 @@ async function onConfirm(choice: { listId: string; status: WatchStatus }) {
 
       <div v-if="capture.status === 'completed'" class="mt-4 text-sm text-slate-300">
         Esta captura já foi concluída.
-        <RouterLink :to="{ name: 'home' }" class="text-indigo-400 hover:underline">Voltar às listas</RouterLink>
+        <RouterLink :to="{ name: 'home' }" class="text-indigo-400 underline underline-offset-2 hover:text-indigo-300">Voltar às listas</RouterLink>
       </div>
 
       <template v-else>

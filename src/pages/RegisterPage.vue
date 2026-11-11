@@ -30,7 +30,7 @@ async function onSubmit(credentials: Credentials) {
     <h2 class="mb-4 text-lg font-medium">Criar conta</h2>
     <p v-if="needsConfirmation" role="status" class="text-sm text-slate-300">
       Conta criada. Enviamos um e-mail de confirmação; confirme-o e depois
-      <RouterLink :to="{ name: 'login' }" class="text-indigo-400 hover:underline">entre</RouterLink>.
+      <RouterLink :to="{ name: 'login' }" class="text-indigo-400 underline underline-offset-2 hover:text-indigo-300">entre</RouterLink>.
     </p>
     <template v-else>
       <AuthForm
@@ -42,7 +42,7 @@ async function onSubmit(credentials: Credentials) {
       />
       <p class="mt-4 text-center text-sm text-slate-400">
         Já tem conta?
-        <RouterLink :to="{ name: 'login' }" class="text-indigo-400 hover:underline">Entrar</RouterLink>
+        <RouterLink :to="{ name: 'login' }" class="text-indigo-400 underline underline-offset-2 hover:text-indigo-300">Entrar</RouterLink>
       </p>
     </template>
   </AuthLayout>

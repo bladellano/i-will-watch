@@ -38,7 +38,7 @@ async function onSubmit(credentials: Credentials) {
     />
     <p class="mt-4 text-center text-sm text-slate-400">
       Não tem conta?
-      <RouterLink :to="{ name: 'register' }" class="text-indigo-400 hover:underline">Cadastre-se</RouterLink>
+      <RouterLink :to="{ name: 'register' }" class="text-indigo-400 underline underline-offset-2 hover:text-indigo-300">Cadastre-se</RouterLink>
     </p>
   </AuthLayout>
 </template>

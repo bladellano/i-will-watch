@@ -749,9 +749,33 @@ comprometer a segurança dos dados.
     Netlify): HTTPS, variáveis `VITE_*`, SPA fallback e URLs de
     redirecionamento do Supabase Auth. Nada é publicado automaticamente.
 
-**6A --- implementada, aguardando validação.** Arquivos:
+**6A --- concluída e validada.** Arquivos:
 `vitest.config.ts`, `vitest.rls.config.ts`, `tests/rls/rls.spec.ts`,
 `.env.test.example`, specs em `src/**/__tests__/`.
+
+**6B --- concluída e validada.**
+
+-   Playwright (`npm run test:e2e`, config em `playwright.config.ts`):
+    sobe `build` + `preview` na porta 4173 e usa o usuário de teste A de
+    `.env.test.local`. Primeira vez: `npx playwright install chromium`.
+    Specs em `tests/e2e/`: `auth` (redirecionamento, validação, erro
+    genérico, login/logout), `lists-and-media` (criar lista, adicionar
+    obra pelo TMDB real, status, nota, persistência, validação de nota,
+    remover, excluir lista; lista default sem exclusão), `capture`
+    (aviso de custo, cancelamento sem chamada, chamada única à IA
+    **simulada** com resposta 429, pendente na home, descarte) e `a11y`
+    (`axe-core` WCAG A/AA nas telas e em um diálogo; falha só em
+    violações *serious/critical*; teste de teclado com o link de salto).
+    Dados criados usam o prefixo `e2e-` e são removidos pelo próprio
+    teste.
+-   Custos: `docs/custos.md` (mapa de chamadas externas, controles,
+    consultas SQL sobre `ai_usage_log`, limites do plano gratuito e um
+    ponto de atenção: tentativas de IA que falham não entram no teto
+    diário; não alterado).
+-   Publicação: `docs/publicacao.md` (Vercel, com nota sobre Netlify;
+    variáveis `VITE_*`, URLs do Supabase Auth, verificação pós-deploy) e
+    `vercel.json` (SPA fallback e sem cache do `sw.js`). Nada foi
+    publicado.
 
 **Critério de conclusão:** testes automatizados dos fluxos críticos,
 RLS validado com mais de um usuário e documentação de configuração e
@@ -764,8 +788,9 @@ publicação.
 -   Etapa 3 --- Listas e detalhes: concluída e validada.
 -   Etapa 4 --- Captura de imagem e IA opcional: concluída e validada.
 -   Etapa 5 --- PWA: concluída e validada.
--   Etapa 6A --- Testes unitários, RLS e acessibilidade: implementada, aguardando validação.
--   Etapa 6B --- Playwright, custos e publicação: não iniciada.
+-   Etapa 6A --- Testes unitários, RLS e acessibilidade: concluída e validada.
+-   Etapa 6B --- Playwright, custos e publicação: concluída e validada (10 testes E2E passando).
+-   Todas as etapas (1 a 6) concluídas e validadas. Próximo passo: publicar conforme `docs/publicacao.md`.
 
 ## 12. Fora do escopo inicial
 

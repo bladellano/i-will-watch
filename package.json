@@ -12,7 +12,8 @@
     "generate-pwa-assets": "pwa-assets-generator",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:rls": "vitest run --config vitest.rls.config.ts --mode test"
+    "test:rls": "vitest run --config vitest.rls.config.ts --mode test",
+    "test:e2e": "playwright test"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.119.0",
@@ -22,6 +23,8 @@
     "vue-router": "^5.3.1"
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.14.0",
+    "@playwright/test": "^1.65.0",
     "@tailwindcss/vite": "^4.3.5",
     "@tsconfig/node24": "^24.0.5",
     "@types/node": "^24.13.4",

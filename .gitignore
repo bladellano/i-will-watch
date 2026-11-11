@@ -43,3 +43,7 @@ __screenshots__/
 .env.local
 .env.*.local
 credentials.txt
+
+# Playwright
+/test-results/
+/playwright-report/
