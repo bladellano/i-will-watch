@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, watch } from 'vue'
+import { ref, useId, watch } from 'vue'
 
 const props = defineProps<{
   open: boolean
@@ -11,6 +11,7 @@ const props = defineProps<{
 const emit = defineEmits<{ confirm: []; cancel: [] }>()
 
 const dialog = ref<HTMLDialogElement | null>(null)
+const titleId = useId()
 
 watch(
   () => props.open,
@@ -27,10 +28,11 @@ watch(
 <template>
   <dialog
     ref="dialog"
+    :aria-labelledby="titleId"
     class="m-auto w-full max-w-sm rounded-2xl border border-slate-700 bg-slate-900 p-6 text-slate-100 backdrop:bg-black/60"
     @cancel.prevent="emit('cancel')"
   >
-    <h3 class="text-lg font-semibold">{{ props.title }}</h3>
+    <h3 :id="titleId" class="text-lg font-semibold">{{ props.title }}</h3>
     <p class="mt-2 text-sm text-slate-300">{{ props.message }}</p>
     <div class="mt-5 flex justify-end gap-2">
       <button type="button" class="rounded-lg border border-slate-700 px-3 py-2 text-sm hover:bg-slate-800" @click="emit('cancel')">

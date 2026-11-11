@@ -98,7 +98,7 @@ async function onConfirmDelete() {
 
     <p v-if="actionError" role="alert" class="mt-3 text-sm text-red-400">{{ actionError }}</p>
 
-    <p v-if="store.loading && store.lists.length === 0" class="mt-6 text-sm text-slate-400">Carregando listas…</p>
+    <p v-if="store.loading && store.lists.length === 0" role="status" class="mt-6 text-sm text-slate-400">Carregando listas…</p>
     <div v-else-if="store.error" role="alert" class="mt-6 text-sm text-red-400">
       {{ store.error }}
       <button type="button" class="ml-2 underline" @click="store.load()">Tentar de novo</button>
@@ -114,7 +114,7 @@ async function onConfirmDelete() {
           <div class="flex shrink-0 gap-1">
             <button
               type="button"
-              class="rounded-md p-1.5 text-slate-400 hover:bg-slate-800 hover:text-slate-100"
+              class="rounded-md p-2.5 text-slate-400 hover:bg-slate-800 hover:text-slate-100"
               :aria-label="`Editar lista ${list.name}`"
               @click="openEdit(list)"
             >
@@ -123,7 +123,7 @@ async function onConfirmDelete() {
             <button
               v-if="!list.is_default"
               type="button"
-              class="rounded-md p-1.5 text-slate-400 hover:bg-slate-800 hover:text-red-400"
+              class="rounded-md p-2.5 text-slate-400 hover:bg-slate-800 hover:text-red-400"
               :aria-label="`Excluir lista ${list.name}`"
               @click="deleting = list"
             >

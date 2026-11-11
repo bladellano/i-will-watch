@@ -33,4 +33,20 @@ router.beforeEach(async (to) => {
   }
 })
 
+const titles: Record<string, string> = {
+  home: 'Suas listas',
+  'add-media': 'Adicionar filme ou série',
+  list: 'Lista',
+  'list-item': 'Detalhes da obra',
+  'capture-new': 'Nova captura',
+  capture: 'Captura',
+  login: 'Entrar',
+  register: 'Criar conta',
+}
+
+router.afterEach((to) => {
+  const page = titles[String(to.name)]
+  document.title = page ? `${page} · Minha lista de filmes e séries` : 'Minha lista de filmes e séries'
+})
+
 export default router

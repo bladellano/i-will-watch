@@ -113,7 +113,7 @@ async function onConfirm(choice: { listId: string; status: WatchStatus }) {
       <ArrowLeft class="h-4 w-4" aria-hidden="true" /> Início
     </RouterLink>
 
-    <p v-if="loading" class="text-sm text-slate-400">Carregando…</p>
+    <p v-if="loading" role="status" class="text-sm text-slate-400">Carregando…</p>
     <p v-else-if="loadError" role="alert" class="text-sm text-red-400">
       {{ loadError }}
       <button type="button" class="ml-2 underline" @click="load">Tentar de novo</button>

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, watch } from 'vue'
+import { ref, useId, watch } from 'vue'
 
 const props = defineProps<{
   open: boolean
@@ -12,6 +12,7 @@ const props = defineProps<{
 const emit = defineEmits<{ submit: [input: { name: string; description: string }]; cancel: [] }>()
 
 const dialog = ref<HTMLDialogElement | null>(null)
+const titleId = useId()
 const name = ref('')
 const description = ref('')
 
@@ -35,11 +36,12 @@ watch(
 <template>
   <dialog
     ref="dialog"
+    :aria-labelledby="titleId"
     class="m-auto w-full max-w-md rounded-2xl border border-slate-700 bg-slate-900 p-6 text-slate-100 backdrop:bg-black/60"
     @cancel.prevent="emit('cancel')"
   >
     <form class="space-y-4" novalidate @submit.prevent="emit('submit', { name, description })">
-      <h3 class="text-lg font-semibold">{{ props.title }}</h3>
+      <h3 :id="titleId" class="text-lg font-semibold">{{ props.title }}</h3>
       <div>
         <label for="list-name" class="mb-1 block text-sm text-slate-300">Nome</label>
         <input

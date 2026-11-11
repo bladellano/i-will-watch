@@ -726,12 +726,36 @@ comprometer a segurança dos dados.
 
 ### Etapa 6 --- Qualidade e refinamento
 
--   Adicionar testes unitários com Vitest.
--   Adicionar testes de fluxos críticos com Playwright.
--   Validar RLS com mais de um usuário de teste.
--   Tratar acessibilidade, feedbacks e estados de erro.
--   Revisar custos e quantidade de chamadas às APIs.
--   Documentar configuração e publicação.
+**Decisões:**
+
+-   Entrega em duas partes: **6A** (testes unitários, RLS e
+    acessibilidade) e **6B** (Playwright, custos e publicação).
+-   Vitest: testes sem rede (utilitários, `requestError`, stores Pinia e
+    serviço de auth com Supabase simulado), em
+    `src/**/__tests__/*.spec.ts`; `npm test`.
+-   RLS: `npm run test:rls` roda contra o Supabase real com 2 usuários de
+    teste (`.env.test.local`, a partir de `.env.test.example`; nunca
+    usar a conta principal). Cada teste tenta acessar dados do outro
+    usuário e espera negação; os dados criados são removidos.
+-   Acessibilidade: correções diretas (foco visível, link "Ir para o
+    conteúdo", `h1`, título por rota, diálogos nomeados, status
+    anunciado, alvos de toque maiores, `prefers-reduced-motion`) e
+    verificação automática com `axe-core` no Playwright (6B).
+-   Playwright (6B): contra `npm run preview` e o Supabase real, com
+    usuário de teste dedicado; IA sempre simulada (sem custo OpenAI).
+-   Custos (6B): relatório com SQL sobre `ai_usage_log` e revisão das
+    chamadas a TMDB/OpenAI; sem painel novo.
+-   Publicação (6B): apenas documentação (Vercel, com nota sobre
+    Netlify): HTTPS, variáveis `VITE_*`, SPA fallback e URLs de
+    redirecionamento do Supabase Auth. Nada é publicado automaticamente.
+
+**6A --- implementada, aguardando validação.** Arquivos:
+`vitest.config.ts`, `vitest.rls.config.ts`, `tests/rls/rls.spec.ts`,
+`.env.test.example`, specs em `src/**/__tests__/`.
+
+**Critério de conclusão:** testes automatizados dos fluxos críticos,
+RLS validado com mais de um usuário e documentação de configuração e
+publicação.
 
 ## 11.1 Andamento
 
@@ -740,7 +764,8 @@ comprometer a segurança dos dados.
 -   Etapa 3 --- Listas e detalhes: concluída e validada.
 -   Etapa 4 --- Captura de imagem e IA opcional: concluída e validada.
 -   Etapa 5 --- PWA: concluída e validada.
--   Etapa 6: não iniciada.
+-   Etapa 6A --- Testes unitários, RLS e acessibilidade: implementada, aguardando validação.
+-   Etapa 6B --- Playwright, custos e publicação: não iniciada.
 
 ## 12. Fora do escopo inicial
 

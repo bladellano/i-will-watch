@@ -137,7 +137,7 @@ onBeforeUnmount(clearPreview)
       >
         {{ saving ? 'Salvando…' : 'Salvar captura' }}
       </button>
-      <p class="text-xs text-slate-500">Informe ao menos uma imagem, um título ou uma URL.</p>
+      <p class="text-xs text-slate-400">Informe ao menos uma imagem, um título ou uma URL.</p>
     </form>
   </AppLayout>
 </template>

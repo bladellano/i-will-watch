@@ -62,7 +62,7 @@ watch(listId, load, { immediate: true })
       <ArrowLeft class="h-4 w-4" aria-hidden="true" /> Listas
     </RouterLink>
 
-    <p v-if="loading" class="text-sm text-slate-400">Carregando…</p>
+    <p v-if="loading" role="status" class="text-sm text-slate-400">Carregando…</p>
     <p v-else-if="error" role="alert" class="text-sm text-red-400">
       {{ error }}
       <button type="button" class="ml-2 underline" @click="load">Tentar de novo</button>
