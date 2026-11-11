@@ -1,3 +1,4 @@
+import { requestError } from '@/services/network'
 import { supabase } from '@/services/supabase/client'
 
 export interface Credentials {
@@ -14,7 +15,7 @@ function toFriendlyError(error: { message: string; code?: string }): Error {
   if (code === 'weak_password') return new Error('Senha muito fraca. Use ao menos 6 caracteres.')
   if (code === 'over_request_rate_limit' || code === 'over_email_send_rate_limit')
     return new Error('Muitas tentativas. Aguarde um instante e tente novamente.')
-  return new Error('Não foi possível concluir a operação. Tente novamente.')
+  return requestError('Não foi possível concluir a operação. Tente novamente.')
 }
 
 export async function signIn({ email, password }: Credentials) {

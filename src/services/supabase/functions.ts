@@ -1,3 +1,4 @@
+import { requestError } from '@/services/network'
 import { FunctionsHttpError } from '@supabase/supabase-js'
 import { supabase } from './client'
 
@@ -8,13 +9,13 @@ import { supabase } from './client'
 export async function invokeFunction<T>(name: string, body: Record<string, unknown>, fallbackMessage: string): Promise<T> {
   const { data, error } = await supabase.functions.invoke<T>(name, { body })
   if (error) {
-    let message = fallbackMessage
+    let message: string | null = null
     if (error instanceof FunctionsHttpError) {
       const payload = await error.context.json().catch(() => null)
       if (payload && typeof payload.error === 'string') message = payload.error
     }
-    throw new Error(message)
+    throw message ? new Error(message) : requestError(fallbackMessage)
   }
-  if (data === null || data === undefined) throw new Error(fallbackMessage)
+  if (data === null || data === undefined) throw requestError(fallbackMessage)
   return data
 }

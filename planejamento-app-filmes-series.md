@@ -688,15 +688,38 @@ obras (criar listas, ver o conteúdo, editar dados pessoais e remover).
 **Critério de conclusão:** reconhecimento funciona sob demanda, com
 custo controlado e confirmação antes de cadastrar.
 
-### Etapa 5 --- PWA
+### Etapa 5 --- PWA (concluída e validada)
 
--   Instalar e configurar `vite-plugin-pwa`.
--   Criar manifest e ícones.
--   Configurar service worker e cache de recursos estáticos.
--   Validar instalação em navegadores e dispositivos compatíveis.
--   Implementar experiência adequada para indisponibilidade de conexão.
--   Verificar que dados privados não sejam armazenados em cache de forma
-    insegura.
+**Decisões:**
+
+-   `vite-plugin-pwa` 2.0.0 com `registerType: 'prompt'`: nova versão só
+    é aplicada quando o usuário clica em "Atualizar" (verificação a cada
+    hora).
+-   Service worker (`generateSW`) com *precache* apenas dos arquivos
+    estáticos do app (js, css, html, ícones, manifest).
+-   **Sem cache de runtime**: respostas do Supabase, Edge Functions,
+    TMDB e imagens de captura nunca são armazenadas, evitando dado
+    privado em cache.
+-   Sem modo offline funcional: o app abre, mas exibe o aviso "Sem
+    conexão" e mensagens de erro específicas (`requestError`).
+-   Service worker desativado em desenvolvimento (`devOptions.enabled:
+    false`); validar com `npm run build && npm run preview`.
+-   Manifest: nome "Minha lista de filmes e séries", nome curto "Minha
+    lista", `pt-BR`, `display: standalone`, tema/fundo `#020617`.
+-   Ícones gerados a partir de `public/icon.svg` com
+    `npm run generate-pwa-assets` (192, 512, maskable, apple-touch,
+    favicon).
+-   Ajustes mobile: `viewport-fit=cover`, safe-area no `body`.
+
+**Arquivos principais:** `vite.config.ts`, `pwa-assets.config.ts`,
+`index.html`, `src/components/ui/{UpdatePrompt,OfflineBanner}.vue`,
+`src/composables/useOnline.ts`, `src/services/network.ts`.
+
+**Validação:** `npm install`; `npm run build && npm run preview`; no
+Chrome, DevTools → Application: Manifest sem erros, Service Worker
+ativo, Cache Storage somente com arquivos do app; desligar a rede e
+conferir o aviso; instalar pelo ícone de instalação do navegador.
+Observação: instalação em celular exige HTTPS (Etapa 6, publicação).
 
 **Critério de conclusão:** aplicação instalável e responsiva, sem
 comprometer a segurança dos dados.
@@ -716,7 +739,8 @@ comprometer a segurança dos dados.
 -   Etapa 2 --- Catálogo e cadastro manual: concluída e validada.
 -   Etapa 3 --- Listas e detalhes: concluída e validada.
 -   Etapa 4 --- Captura de imagem e IA opcional: concluída e validada.
--   Etapas 5 e 6: não iniciadas.
+-   Etapa 5 --- PWA: concluída e validada.
+-   Etapa 6: não iniciada.
 
 ## 12. Fora do escopo inicial
 

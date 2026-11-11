@@ -1,3 +1,4 @@
+import { requestError } from '@/services/network'
 import { supabase } from '@/services/supabase/client'
 import { invokeFunction } from '@/services/supabase/functions'
 import { ALLOWED_IMAGE_TYPES, MAX_IMAGE_BYTES, type Capture } from '../types'
@@ -51,7 +52,7 @@ export async function createCapture(input: NewCapture): Promise<string> {
       contentType: input.file.type,
       upsert: false,
     })
-    if (error) throw new Error('Não foi possível enviar a imagem. Tente novamente.')
+    if (error) throw requestError('Não foi possível enviar a imagem. Tente novamente.')
   }
 
   const { error } = await supabase.from('capture_requests').insert({
@@ -63,7 +64,7 @@ export async function createCapture(input: NewCapture): Promise<string> {
   })
   if (error) {
     if (imagePath) await supabase.storage.from(BUCKET).remove([imagePath])
-    throw new Error('Não foi possível salvar a captura. Tente novamente.')
+    throw requestError('Não foi possível salvar a captura. Tente novamente.')
   }
   return id
 }
@@ -74,13 +75,13 @@ export async function fetchOpenCaptures(): Promise<Capture[]> {
     .select(CAPTURE_SELECT)
     .neq('status', 'completed')
     .order('created_at', { ascending: false })
-  if (error) throw new Error('Não foi possível carregar as capturas.')
+  if (error) throw requestError('Não foi possível carregar as capturas.')
   return (data ?? []) as unknown as Capture[]
 }
 
 export async function fetchCapture(id: string): Promise<Capture | null> {
   const { data, error } = await supabase.from('capture_requests').select(CAPTURE_SELECT).eq('id', id).maybeSingle()
-  if (error) throw new Error('Não foi possível carregar a captura.')
+  if (error) throw requestError('Não foi possível carregar a captura.')
   return (data as unknown as Capture | null) ?? null
 }
 
@@ -93,10 +94,10 @@ export async function getImageUrl(path: string): Promise<string | null> {
 export async function discardCapture(capture: Capture): Promise<void> {
   if (capture.image_path) {
     const { error } = await supabase.storage.from(BUCKET).remove([capture.image_path])
-    if (error) throw new Error('Não foi possível descartar a imagem.')
+    if (error) throw requestError('Não foi possível descartar a imagem.')
   }
   const { data, error } = await supabase.from('capture_requests').delete().eq('id', capture.id).select('id')
-  if (error || !data || data.length === 0) throw new Error('Não foi possível descartar a captura.')
+  if (error || !data || data.length === 0) throw requestError('Não foi possível descartar a captura.')
 }
 
 /** Única chamada que envia dados à OpenAI: só deve ser feita após confirmação explícita do usuário. */

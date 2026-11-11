@@ -1,3 +1,4 @@
+import { requestError } from '@/services/network'
 import { supabase } from '@/services/supabase/client'
 import type { ListItem, ListItemPatch } from '../types'
 
@@ -15,7 +16,7 @@ export async function fetchListItems(listId: string): Promise<ListItem[]> {
     .select(ITEM_SELECT)
     .eq('list_id', listId)
     .order('added_at', { ascending: false })
-  if (error) throw new Error('Não foi possível carregar as obras da lista.')
+  if (error) throw requestError('Não foi possível carregar as obras da lista.')
   return (data ?? []) as unknown as ListItem[]
 }
 
@@ -26,17 +27,17 @@ export async function fetchListItem(listId: string, itemId: string): Promise<Lis
     .eq('list_id', listId)
     .eq('id', itemId)
     .maybeSingle()
-  if (error) throw new Error('Não foi possível carregar a obra.')
+  if (error) throw requestError('Não foi possível carregar a obra.')
   return (data as unknown as ListItem | null) ?? null
 }
 
 export async function updateListItem(itemId: string, patch: ListItemPatch): Promise<void> {
   const { data, error } = await supabase.from('list_media').update(patch).eq('id', itemId).select('id')
-  if (error || !data || data.length === 0) throw new Error('Não foi possível salvar as alterações.')
+  if (error || !data || data.length === 0) throw requestError('Não foi possível salvar as alterações.')
 }
 
 /** Remove apenas o vínculo; a obra continua em `media` e nas demais listas. */
 export async function removeListItem(itemId: string): Promise<void> {
   const { data, error } = await supabase.from('list_media').delete().eq('id', itemId).select('id')
-  if (error || !data || data.length === 0) throw new Error('Não foi possível remover a obra da lista.')
+  if (error || !data || data.length === 0) throw requestError('Não foi possível remover a obra da lista.')
 }
