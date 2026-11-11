@@ -17,7 +17,7 @@ O frontend é um site estático (Vue + Vite). O backend (Supabase e Edge Functio
 4. **Environment Variables** (Production e Preview):
    - `VITE_SUPABASE_URL`
    - `VITE_SUPABASE_PUBLISHABLE_KEY`
-   Somente essas duas. A chave *publishable* é pública por desenho (a proteção está no RLS). **Nunca** crie variáveis `VITE_` com a chave da OpenAI, o token do TMDB ou a `service_role`: tudo com prefixo `VITE_` vai para o navegador.
+   Somente essas duas, com **exatamente** esses nomes: sem o prefixo `VITE_` (ex.: `SUPABASE_URL`) o Vite não as embute no site e o app abre em branco com o erro "Variáveis VITE_SUPABASE_URL e VITE_SUPABASE_PUBLISHABLE_KEY não configuradas". Variáveis só entram no build: depois de criar ou alterar, faça **Redeploy sem cache de build**. A chave *publishable* é pública por desenho (a proteção está no RLS). **Nunca** crie variáveis `VITE_` com a chave da OpenAI, o token do TMDB ou a `service_role`: tudo com prefixo `VITE_` vai para o navegador.
 5. O arquivo `vercel.json` já faz o *SPA fallback* (rotas como `/listas/123` abrem o app em vez de 404) e evita cache do `sw.js` e do manifest, para as atualizações do PWA chegarem.
 6. Deploy. Anote a URL de produção (ex.: `https://i-will-watch.vercel.app`).
 

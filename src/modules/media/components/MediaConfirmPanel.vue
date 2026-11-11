@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, watch } from 'vue'
+import { nextTick, onMounted, ref, watch } from 'vue'
 import { posterUrl, releaseYear } from '../services/media.service'
 import { MEDIA_TYPE_LABELS, WATCH_STATUS_LABELS, type TmdbSearchResult, type WatchStatus } from '../types'
 import type { UserList } from '@/modules/lists/types'
@@ -17,16 +17,36 @@ watch(
   },
   { immediate: true },
 )
+
+const panel = ref<HTMLElement | null>(null)
+
+/** No celular o painel fica abaixo da lista de resultados: leva o usuário até ele. */
+async function revealOnSmallScreens() {
+  await nextTick()
+  const el = panel.value
+  if (!el || !window.matchMedia('(max-width: 767px)').matches) return
+  const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+  el.scrollIntoView({ behavior: reduceMotion ? 'auto' : 'smooth', block: 'start' })
+  el.focus({ preventScroll: true })
+}
+
+onMounted(revealOnSmallScreens)
 watch(
   () => props.item,
   () => {
     status.value = 'ASSISTIR'
+    void revealOnSmallScreens()
   },
 )
 </script>
 
 <template>
-  <section aria-label="Prévia da obra" class="h-fit rounded-xl border border-slate-800 bg-slate-900/60 p-4">
+  <section
+    ref="panel"
+    tabindex="-1"
+    aria-label="Prévia da obra"
+    class="h-fit scroll-mt-4 rounded-xl border border-slate-800 bg-slate-900/60 p-4 outline-none md:sticky md:top-4"
+  >
     <div class="flex gap-4">
       <img
         v-if="posterUrl(props.item.poster_path)"
