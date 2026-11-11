@@ -37,6 +37,7 @@ export interface ListItem {
   notes: string | null
   added_at: string
   watched_at: string | null
+  is_pinned: boolean
   media: ListItemMedia
 }
 

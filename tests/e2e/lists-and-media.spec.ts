@@ -30,6 +30,13 @@ test('lista, obra, status e nota', async ({ page }) => {
   await page.getByRole('link', { name: 'Voltar' }).click()
   await page.getByRole('link', { name: listName }).click()
   await expect(page.getByText('1 obra').or(page.getByRole('list').getByRole('link').first())).toBeVisible()
+
+  // Fixar e desfixar a obra
+  await page.getByRole('button', { name: /^Fixar / }).first().click()
+  await expect(page.getByRole('button', { name: /^Desafixar / }).first()).toHaveAttribute('aria-pressed', 'true')
+  await expect(page.getByText('Fixado', { exact: true })).toBeVisible()
+  await page.getByRole('button', { name: /^Desafixar / }).first().click()
+  await expect(page.getByText('Fixado', { exact: true })).toHaveCount(0)
   await page.getByRole('main').getByRole('list').getByRole('link').first().click()
 
   // Marcar como assistida com nota

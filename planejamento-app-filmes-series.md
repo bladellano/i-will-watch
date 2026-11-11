@@ -781,6 +781,22 @@ comprometer a segurança dos dados.
 RLS validado com mais de um usuário e documentação de configuração e
 publicação.
 
+## 11.0 Ajustes pós-Etapa 6
+
+-   **Login:** texto "Para que serve este app" (objetivo do produto)
+    exibido abaixo do formulário de login.
+-   **Cores do status:** Para assistir = verde, Assistido = azul,
+    Arquivado = cinza (`src/modules/media/utils/status-style.ts`).
+-   **Ordenação da lista:** sempre Para assistir → Assistido →
+    Arquivado (`sortListItems`); dentro de cada status, itens fixados
+    primeiro e o restante na ordem de inclusão mais recente.
+-   **Fixar itens:** coluna `list_media.is_pinned` (migração
+    `20261111160000_list_media_pinned.sql`, exige `npx supabase db
+    push`); botão de fixar/desafixar em cada card da lista, com destaque
+    visual e etiqueta "Fixado". RLS existente já protege o campo.
+-   Correções: painel de confirmação visível no celular; erro ao salvar
+    nota (`parseRating`).
+
 ## 11.1 Andamento
 
 -   Etapa 1 --- Fundação: concluída e validada.

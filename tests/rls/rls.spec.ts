@@ -119,6 +119,14 @@ describe('list_media', () => {
     const { data } = await a.from('list_media').select('status').eq('id', linkA).single()
     expect(data?.status).toBe('ASSISTIR')
   })
+  it('outro usuário não fixa itens alheios; o dono consegue', async () => {
+    const other = await b.from('list_media').update({ is_pinned: true }).eq('id', linkA).select('id')
+    expect(other.data ?? []).toEqual([])
+    const own = await a.from('list_media').update({ is_pinned: true }).eq('id', linkA).select('id')
+    expect(own.error).toBeNull()
+    expect(own.data).toHaveLength(1)
+    await a.from('list_media').update({ is_pinned: false }).eq('id', linkA)
+  })
   it('outro usuário não insere obra na lista alheia', async () => {
     const { error } = await b.from('list_media').insert({ list_id: listA, media_id: mediaId })
     expect(error).not.toBeNull()

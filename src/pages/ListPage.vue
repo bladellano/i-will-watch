@@ -1,12 +1,14 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
 import { RouterLink, useRoute } from 'vue-router'
-import { ArrowLeft, Film, Plus, Search } from 'lucide-vue-next'
+import { ArrowLeft, Film, Pin, PinOff, Plus, Search } from 'lucide-vue-next'
 import AppLayout from '@/layouts/AppLayout.vue'
 import { fetchList } from '@/modules/lists/services/lists.service'
-import { fetchListItems } from '@/modules/lists/services/list-items.service'
+import { fetchListItems, setListItemPinned } from '@/modules/lists/services/list-items.service'
+import { sortListItems } from '@/modules/lists/utils/order'
 import type { ListDetails, ListItem } from '@/modules/lists/types'
 import { posterUrl, releaseYear } from '@/modules/media/services/media.service'
+import { statusBadgeClass } from '@/modules/media/utils/status-style'
 import { MEDIA_TYPE_LABELS, WATCH_STATUS_LABELS, type MediaType, type WatchStatus } from '@/modules/media/types'
 
 const route = useRoute()
@@ -20,6 +22,8 @@ const error = ref('')
 const statusFilter = ref<'' | WatchStatus>('')
 const typeFilter = ref<'' | MediaType>('')
 const search = ref('')
+const pinBusyId = ref<string | null>(null)
+const pinError = ref('')
 
 const normalize = (text: string) => text.normalize('NFD').replace(/\p{Diacritic}/gu, '').toLowerCase()
 
@@ -32,6 +36,22 @@ const filtered = computed(() => {
     return normalize(item.media.title).includes(term) || normalize(item.media.original_title ?? '').includes(term)
   })
 })
+
+const sorted = computed(() => sortListItems(filtered.value))
+
+async function togglePin(item: ListItem) {
+  pinBusyId.value = item.id
+  pinError.value = ''
+  const pinned = !item.is_pinned
+  try {
+    await setListItemPinned(item.id, pinned)
+    items.value = items.value.map((i) => (i.id === item.id ? { ...i, is_pinned: pinned } : i))
+  } catch (e) {
+    pinError.value = e instanceof Error ? e.message : 'Erro inesperado.'
+  } finally {
+    pinBusyId.value = null
+  }
+}
 
 async function load() {
   loading.value = true
@@ -110,16 +130,20 @@ watch(listId, load, { immediate: true })
         </div>
       </div>
 
+      <p v-if="pinError" role="alert" class="mt-3 text-sm text-red-400">{{ pinError }}</p>
       <p v-if="items.length === 0" class="mt-6 text-sm text-slate-400">
         Esta lista está vazia. Use "Adicionar" para incluir um filme ou série.
       </p>
       <p v-else-if="filtered.length === 0" class="mt-6 text-sm text-slate-400">Nenhuma obra corresponde aos filtros.</p>
 
       <ul v-else class="mt-5 grid gap-3 sm:grid-cols-2">
-        <li v-for="item in filtered" :key="item.id">
+        <li v-for="item in sorted" :key="item.id" class="relative">
           <RouterLink
             :to="{ name: 'list-item', params: { listaId: listId, vinculoId: item.id } }"
-            class="flex gap-3 rounded-xl border border-slate-800 bg-slate-900/60 p-2 hover:bg-slate-800/60"
+            :class="[
+              'flex h-full gap-3 rounded-xl border bg-slate-900/60 p-2 pr-14 hover:bg-slate-800/60',
+              item.is_pinned ? 'border-indigo-400/60 ring-1 ring-indigo-400/30' : 'border-slate-800',
+            ]"
           >
             <img
               v-if="posterUrl(item.media.poster_path, 'w185')"
@@ -136,12 +160,35 @@ watch(listId, load, { immediate: true })
               <p class="mt-1 text-sm text-slate-400">
                 {{ MEDIA_TYPE_LABELS[item.media.media_type] }} · {{ releaseYear(item.media.release_date) }}
               </p>
-              <p class="mt-2 text-xs">
-                <span class="rounded-full bg-slate-800 px-2 py-0.5 text-slate-200">{{ WATCH_STATUS_LABELS[item.status] }}</span>
-                <span v-if="item.personal_rating" class="ml-2 text-slate-300">★ {{ item.personal_rating }}/10</span>
+              <p class="mt-2 flex flex-wrap items-center gap-2 text-xs">
+                <span :class="['rounded-full px-2 py-0.5 font-medium ring-1', statusBadgeClass(item.status)]">
+                  {{ WATCH_STATUS_LABELS[item.status] }}
+                </span>
+                <span
+                  v-if="item.is_pinned"
+                  class="rounded-full bg-indigo-500/20 px-2 py-0.5 font-medium text-indigo-200 ring-1 ring-indigo-400/50"
+                >
+                  Fixado
+                </span>
+                <span v-if="item.personal_rating" class="text-slate-300">★ {{ item.personal_rating }}/10</span>
               </p>
             </div>
           </RouterLink>
+          <button
+            type="button"
+            :aria-pressed="item.is_pinned ? 'true' : 'false'"
+            :aria-label="`${item.is_pinned ? 'Desafixar' : 'Fixar'} ${item.media.title}`"
+            :title="item.is_pinned ? 'Desafixar' : 'Fixar'"
+            :disabled="pinBusyId === item.id"
+            :class="[
+              'absolute right-1 top-1 z-10 flex size-11 items-center justify-center rounded-lg hover:bg-slate-800 disabled:opacity-50',
+              item.is_pinned ? 'text-indigo-300' : 'text-slate-400 hover:text-slate-100',
+            ]"
+            @click="togglePin(item)"
+          >
+            <PinOff v-if="item.is_pinned" class="size-5" aria-hidden="true" />
+            <Pin v-else class="size-5" aria-hidden="true" />
+          </button>
         </li>
       </ul>
     </template>
