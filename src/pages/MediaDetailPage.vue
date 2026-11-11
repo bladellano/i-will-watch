@@ -6,6 +6,7 @@ import AppLayout from '@/layouts/AppLayout.vue'
 import ConfirmDialog from '@/components/ui/ConfirmDialog.vue'
 import { fetchListItem, removeListItem, updateListItem } from '@/modules/lists/services/list-items.service'
 import type { ListItem } from '@/modules/lists/types'
+import { parseRating } from '@/modules/lists/utils/rating'
 import { dateInputToIso, isoToDateInput, todayDateInput } from '@/modules/lists/utils/dates'
 import { posterUrl, releaseYear } from '@/modules/media/services/media.service'
 import { MEDIA_TYPE_LABELS, WATCH_STATUS_LABELS, type WatchStatus } from '@/modules/media/types'
@@ -20,7 +21,7 @@ const loading = ref(true)
 const loadError = ref('')
 
 const status = ref<WatchStatus>('ASSISTIR')
-const ratingText = ref('')
+const ratingText = ref<string | number>('')
 const notes = ref('')
 const watchedDate = ref('')
 
@@ -74,14 +75,12 @@ async function onSave() {
   if (!item.value) return
   feedback.value = null
 
-  let rating: number | null = null
-  if (ratingText.value.trim() !== '') {
-    rating = Number(ratingText.value)
-    if (!Number.isInteger(rating) || rating < 1 || rating > 10) {
-      feedback.value = { type: 'error', text: 'A nota deve ser um número inteiro de 1 a 10.' }
-      return
-    }
+  const parsed = parseRating(ratingText.value)
+  if (!parsed.ok) {
+    feedback.value = { type: 'error', text: 'A nota deve ser um número inteiro de 1 a 10.' }
+    return
   }
+  const rating = parsed.value
 
   let watchedAt: string | null = null
   if (status.value === 'ASSISTIDO') {

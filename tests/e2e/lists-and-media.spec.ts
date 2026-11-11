@@ -5,6 +5,8 @@ import { login, requireTestUser, uniqueName } from './helpers'
 test('lista, obra, status e nota', async ({ page }) => {
   requireTestUser()
   const listName = uniqueName('lista')
+  const pageErrors: string[] = []
+  page.on('pageerror', (e) => pageErrors.push(e.message))
   await login(page)
 
   // Criar lista
@@ -41,6 +43,11 @@ test('lista, obra, status e nota', async ({ page }) => {
   await expect(page.getByLabel('Status')).toHaveValue('ASSISTIDO')
   await expect(page.getByLabel('Nota (1 a 10, opcional)')).toHaveValue('9')
 
+  // Editar uma obra já salva (regressão: erro de JS ao salvar depois de editar a nota)
+  await page.getByLabel('Nota (1 a 10, opcional)').fill('8')
+  await page.getByRole('button', { name: 'Salvar alterações' }).click()
+  await expect(page.getByRole('status')).toContainText('Alterações salvas.')
+
   // Validação de nota
   await page.getByLabel('Nota (1 a 10, opcional)').fill('11')
   await page.getByRole('button', { name: 'Salvar alterações' }).click()
@@ -56,6 +63,9 @@ test('lista, obra, status e nota', async ({ page }) => {
   await page.getByRole('button', { name: `Excluir lista ${listName}` }).click()
   await page.getByRole('dialog', { name: 'Excluir lista' }).getByRole('button', { name: 'Excluir' }).click()
   await expect(page.getByRole('heading', { name: listName })).toHaveCount(0)
+
+  // Nenhum erro de JavaScript não tratado durante o fluxo
+  expect(pageErrors).toEqual([])
 })
 
 test('a lista default não oferece exclusão', async ({ page }) => {
