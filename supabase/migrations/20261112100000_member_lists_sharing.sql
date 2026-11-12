@@ -15,7 +15,7 @@ grant update (share_lists) on public.profiles to authenticated;
 -- 2) recent_additions passa a devolver member_id (abre o modal) e member_shares_lists (nome clicável).
 drop function if exists public.recent_additions(integer);
 
-create function public.recent_additions(max_items integer default 5)
+create function public.recent_additions(max_items integer default 25)
 returns table (
   item_id              uuid,
   member_name          text,
@@ -76,7 +76,7 @@ as $$
   left join public.profiles p on p.id = x.user_id
   where (select auth.uid()) is not null
   order by x.added_at desc
-  limit greatest(1, least(coalesce(max_items, 5), 10));
+  limit greatest(1, least(coalesce(max_items, 25), 25));
 $$;
 
 revoke execute on function public.recent_additions(integer) from public, anon;

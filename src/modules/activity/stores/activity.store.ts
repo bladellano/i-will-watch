@@ -22,7 +22,7 @@ export const useActivityStore = defineStore('activity', () => {
     if (!force && loaded.value && Date.now() - lastLoad < STALE_MS) return Promise.resolve()
     loading.value = true
     error.value = ''
-    inflight = fetchRecentAdditions(5)
+    inflight = fetchRecentAdditions(25)
       .then((result) => {
         items.value = result
         loaded.value = true

@@ -208,10 +208,10 @@ describe('storage (bucket captures)', () => {
 })
 
 describe('recent_additions (widget)', () => {
-  it('usuário autenticado recebe no máximo 5 itens, mais recentes primeiro, sem dados sensíveis', async () => {
-    const { data, error } = await a.rpc('recent_additions', { max_items: 5 })
+  it('usuário autenticado recebe no máximo 25 itens, mais recentes primeiro, sem dados sensíveis', async () => {
+    const { data, error } = await a.rpc('recent_additions', { max_items: 25 })
     expect(error).toBeNull()
-    expect((data ?? []).length).toBeLessThanOrEqual(5)
+    expect((data ?? []).length).toBeLessThanOrEqual(25)
     const dates = (data ?? []).map((r: { added_at: string }) => Date.parse(r.added_at))
     expect(dates).toEqual([...dates].sort((x, y) => y - x))
     for (const row of data ?? []) {
@@ -229,7 +229,7 @@ describe('recent_additions (widget)', () => {
   })
   it('o limite é respeitado mesmo com valores absurdos', async () => {
     const { data } = await a.rpc('recent_additions', { max_items: 1000 })
-    expect((data ?? []).length).toBeLessThanOrEqual(10)
+    expect((data ?? []).length).toBeLessThanOrEqual(25)
   })
   it('a atividade do próprio usuário aparece como "Você" e a do outro, sem e-mail', async () => {
     const { data } = await b.rpc('recent_additions', { max_items: 10 })

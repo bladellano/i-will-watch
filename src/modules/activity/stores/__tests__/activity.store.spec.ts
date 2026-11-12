@@ -15,11 +15,11 @@ beforeEach(() => {
 })
 
 describe('activity store', () => {
-  it('carrega os 5 mais recentes', async () => {
+  it('carrega as 25 adições mais recentes', async () => {
     fetchRecentAdditions.mockResolvedValue([{ item_id: '1' }])
     const store = useActivityStore()
     await store.load()
-    expect(fetchRecentAdditions).toHaveBeenCalledWith(5)
+    expect(fetchRecentAdditions).toHaveBeenCalledWith(25)
     expect(store.items).toHaveLength(1)
     expect(store.loading).toBe(false)
   })
