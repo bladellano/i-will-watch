@@ -3,7 +3,9 @@ import { createPinia, setActivePinia } from 'pinia'
 
 const fetchProfileName = vi.fn()
 const updateProfileName = vi.fn()
-vi.mock('../../services/profile.service', () => ({ fetchProfileName, updateProfileName }))
+const fetchShareLists = vi.fn()
+const updateShareLists = vi.fn()
+vi.mock('../../services/profile.service', () => ({ fetchProfileName, updateProfileName, fetchShareLists, updateShareLists }))
 
 const { useProfileStore } = await import('../profile.store')
 
@@ -52,5 +54,38 @@ describe('profile store', () => {
     await store.load('u1')
     store.reset()
     expect(store.name).toBeNull()
+  })
+})
+
+describe('compartilhamento de listas', () => {
+  beforeEach(() => {
+    fetchShareLists.mockReset()
+    updateShareLists.mockReset()
+  })
+
+  it('começa ligado, como o padrão do banco', () => {
+    expect(useProfileStore().shareLists).toBe(true)
+  })
+
+  it('carrega a preferência salva, inclusive desligada', async () => {
+    const store = useProfileStore()
+    fetchShareLists.mockResolvedValue(false)
+    await store.loadShareLists('u1')
+    expect(store.shareLists).toBe(false)
+  })
+
+  it('salva a preferência', async () => {
+    updateShareLists.mockResolvedValue(undefined)
+    const store = useProfileStore()
+    await store.saveShareLists('u1', true)
+    expect(updateShareLists).toHaveBeenCalledWith('u1', true)
+    expect(store.shareLists).toBe(true)
+  })
+
+  it('mantém o valor anterior se o servidor recusar', async () => {
+    updateShareLists.mockRejectedValue(new Error('Não foi possível salvar sua preferência de compartilhamento.'))
+    const store = useProfileStore()
+    await expect(store.saveShareLists('u1', false)).rejects.toThrow()
+    expect(store.shareLists).toBe(true)
   })
 })

@@ -4,7 +4,10 @@ import { Film, Tv } from 'lucide-vue-next'
 import { posterUrl, releaseYear } from '@/modules/media/services/media.service'
 import MediaDetailsDialog from '@/modules/media/components/MediaDetailsDialog.vue'
 import LikeButton from '@/modules/likes/components/LikeButton.vue'
+import MemberListsDialog from '@/modules/members/components/MemberListsDialog.vue'
+import type { MemberRef } from '@/modules/members/types'
 import { useActivityStore } from '../stores/activity.store'
+import type { RecentAddition } from '../types'
 import { formatAddedAt } from '../utils/format'
 
 const store = useActivityStore()
@@ -12,6 +15,16 @@ const headingId = useId()
 const selectedId = ref<string | null>(null)
 // Derivado do store: o modal mostra sempre a contagem atual de curtidas.
 const selected = computed(() => store.items.find((i) => i.item_id === selectedId.value) ?? null)
+const selectedMember = ref<MemberRef | null>(null)
+
+/** Só o nome de outro membro que compartilha abre as listas; "Você" já tem a própria tela de listas. */
+function canOpenLists(item: RecentAddition): boolean {
+  return !item.is_own && item.member_shares_lists
+}
+
+function openMemberLists(item: RecentAddition) {
+  selectedMember.value = { id: item.member_id, name: item.member_name }
+}
 
 onMounted(() => {
   void store.load()
@@ -62,7 +75,16 @@ onMounted(() => {
           </span>
         </button>
         <p class="min-w-0 text-sm leading-snug text-slate-300">
-          <span class="font-medium text-slate-100">{{ item.member_name }}</span>
+          <button
+            v-if="canOpenLists(item)"
+            type="button"
+            class="font-medium text-slate-100 underline-offset-2 hover:underline focus-visible:underline"
+            :aria-label="`Ver listas de ${item.member_name}`"
+            @click="openMemberLists(item)"
+          >
+            {{ item.member_name }}
+          </button>
+          <span v-else class="font-medium text-slate-100">{{ item.member_name }}</span>
           adicionou
           <span class="font-medium text-slate-100">{{ item.title }}</span>
           <span class="tabular-nums text-slate-400"> ({{ releaseYear(item.release_date) }})</span>
@@ -99,4 +121,5 @@ onMounted(() => {
       />
     </template>
   </MediaDetailsDialog>
+  <MemberListsDialog :member="selectedMember" @close="selectedMember = null" />
 </template>

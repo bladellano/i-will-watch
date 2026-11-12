@@ -13,12 +13,19 @@ const profile = useProfileStore()
 const name = ref('')
 const saving = ref(false)
 const feedback = ref<{ type: 'success' | 'error'; text: string } | null>(null)
+const sharingSaving = ref(false)
+const sharingFeedback = ref<{ type: 'success' | 'error'; text: string } | null>(null)
 
 onMounted(async () => {
   const id = auth.user?.id
   if (!id) return
   await profile.load(id, true)
   name.value = profile.name ?? ''
+  try {
+    await profile.loadShareLists(id)
+  } catch (e) {
+    sharingFeedback.value = { type: 'error', text: e instanceof Error ? e.message : 'Erro inesperado.' }
+  }
 })
 
 async function onSubmit() {
@@ -34,6 +41,27 @@ async function onSubmit() {
     feedback.value = { type: 'error', text: e instanceof Error ? e.message : 'Erro inesperado.' }
   } finally {
     saving.value = false
+  }
+}
+
+async function onToggleSharing(event: Event) {
+  const id = auth.user?.id
+  if (!id) return
+  const input = event.target as HTMLInputElement
+  const next = input.checked
+  sharingSaving.value = true
+  sharingFeedback.value = null
+  try {
+    await profile.saveShareLists(id, next)
+    sharingFeedback.value = {
+      type: 'success',
+      text: next ? 'Suas listas agora aparecem para os outros membros.' : 'Suas listas não aparecem mais para os outros membros.',
+    }
+  } catch (e) {
+    input.checked = !next
+    sharingFeedback.value = { type: 'error', text: e instanceof Error ? e.message : 'Erro inesperado.' }
+  } finally {
+    sharingSaving.value = false
   }
 }
 </script>
@@ -80,5 +108,33 @@ async function onSubmit() {
         {{ saving ? 'Salvando…' : 'Salvar' }}
       </button>
     </form>
+
+    <section class="mt-8 max-w-md" aria-labelledby="sharing-heading">
+      <h3 id="sharing-heading" class="text-sm font-medium text-slate-200">Compartilhamento</h3>
+      <label class="mt-2 flex items-start gap-3 text-sm text-slate-300">
+        <input
+          type="checkbox"
+          role="switch"
+          class="mt-1 size-4 accent-indigo-500"
+          :checked="profile.shareLists"
+          :disabled="sharingSaving"
+          @change="onToggleSharing"
+        />
+        <span>
+          Mostrar minhas listas para outros membros
+          <span class="block text-xs text-slate-400">
+            Os outros membros veem o nome e as obras das suas listas, sem notas nem avaliações.
+          </span>
+        </span>
+      </label>
+      <p
+        v-if="sharingFeedback"
+        :role="sharingFeedback.type === 'error' ? 'alert' : 'status'"
+        class="mt-2 text-sm"
+        :class="sharingFeedback.type === 'error' ? 'text-red-400' : 'text-emerald-400'"
+      >
+        {{ sharingFeedback.text }}
+      </p>
+    </section>
   </AppLayout>
 </template>

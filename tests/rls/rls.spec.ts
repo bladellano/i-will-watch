@@ -216,7 +216,7 @@ describe('recent_additions (widget)', () => {
     expect(dates).toEqual([...dates].sort((x, y) => y - x))
     for (const row of data ?? []) {
       expect(Object.keys(row).sort()).toEqual(
-        ['added_at', 'genres', 'is_own', 'item_id', 'like_count', 'liked_by_me', 'media_type', 'member_name', 'original_title', 'overview', 'poster_path', 'release_date', 'title', 'tmdb_id', 'tmdb_rating'],
+        ['added_at', 'genres', 'is_own', 'item_id', 'like_count', 'liked_by_me', 'media_type', 'member_id', 'member_name', 'member_shares_lists', 'original_title', 'overview', 'poster_path', 'release_date', 'title', 'tmdb_id', 'tmdb_rating'],
       )
       expect(row.member_name).not.toContain('@')
     }
@@ -239,6 +239,60 @@ describe('recent_additions (widget)', () => {
   it('anônimo não executa a função', async () => {
     const { error } = await newClient().rpc('recent_additions', { max_items: 5 })
     expect(error).not.toBeNull()
+  })
+})
+
+describe('compartilhamento de listas (modal do widget)', () => {
+  afterAll(async () => {
+    await a.from('profiles').update({ share_lists: true }).eq('id', aId)
+  })
+  it('por padrão todos compartilham; o usuário lê a própria preferência', async () => {
+    const { data, error } = await a.from('profiles').select('share_lists').eq('id', aId).single()
+    expect(error).toBeNull()
+    expect(data?.share_lists).toBe(true)
+  })
+  it('sem compartilhamento, outro usuário não vê as listas nem as obras', async () => {
+    await a.from('profiles').update({ share_lists: false }).eq('id', aId)
+    const lists = await b.rpc('member_lists', { p_member_id: aId })
+    expect(lists.error).toBeNull()
+    expect(lists.data ?? []).toEqual([])
+    const items = await b.rpc('member_list_items', { p_list_id: listA })
+    expect(items.error).toBeNull()
+    expect(items.data ?? []).toEqual([])
+  })
+  it('outro usuário não altera a preferência de compartilhamento de outro', async () => {
+    const res = await b.from('profiles').update({ share_lists: true }).eq('id', aId).select('id')
+    expect(res.data ?? []).toEqual([])
+  })
+  it('com compartilhamento ligado, outro usuário vê as listas e as obras, sem campos sensíveis', async () => {
+    const on = await a.from('profiles').update({ share_lists: true }).eq('id', aId).select('id')
+    expect(on.data?.length).toBe(1)
+    const lists = await b.rpc('member_lists', { p_member_id: aId })
+    expect(lists.error).toBeNull()
+    expect((lists.data ?? []).map((l: { id: string }) => l.id)).toContain(listA)
+    for (const row of lists.data ?? []) {
+      expect(Object.keys(row).sort()).toEqual(['description', 'id', 'is_default', 'item_count', 'name'])
+    }
+    const items = await b.rpc('member_list_items', { p_list_id: listA })
+    expect(items.error).toBeNull()
+    expect((items.data ?? []).length).toBeGreaterThan(0)
+    for (const row of items.data ?? []) {
+      expect(Object.keys(row).sort()).toEqual(['id', 'media_type', 'poster_path', 'release_date', 'title'])
+    }
+  })
+  it('o widget reflete o compartilhamento: membro que compartilha aparece com member_shares_lists = true', async () => {
+    const { data } = await b.rpc('recent_additions', { max_items: 10 })
+    const mine = (data ?? []).find((r: { member_id: string }) => r.member_id === aId)
+    if (mine) expect(mine.member_shares_lists).toBe(true)
+  })
+  it('ao desligar, o acesso some de novo', async () => {
+    await a.from('profiles').update({ share_lists: false }).eq('id', aId)
+    const lists = await b.rpc('member_lists', { p_member_id: aId })
+    expect(lists.data ?? []).toEqual([])
+  })
+  it('anônimo não executa as funções de listas', async () => {
+    expect((await newClient().rpc('member_lists', { p_member_id: aId })).error).not.toBeNull()
+    expect((await newClient().rpc('member_list_items', { p_list_id: listA })).error).not.toBeNull()
   })
 })
 

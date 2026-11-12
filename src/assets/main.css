@@ -11,6 +11,22 @@ body {
   padding-bottom: env(safe-area-inset-bottom);
 }
 
+/* Cursor de mão em tudo que é clicável. Fica em @layer base, para que utilitários como cursor-default ainda prevaleçam. */
+@layer base {
+  button:not(:disabled),
+  [role='button']:not([aria-disabled='true']),
+  [role='switch']:not(:disabled),
+  a[href],
+  summary,
+  select:not(:disabled),
+  input[type='checkbox']:not(:disabled),
+  input[type='radio']:not(:disabled),
+  label:has(> input[type='checkbox']:not(:disabled)),
+  label:has(> input[type='radio']:not(:disabled)) {
+    cursor: pointer;
+  }
+}
+
 /* Acessibilidade: foco sempre visível ao navegar pelo teclado. */
 :focus-visible {
   outline: 2px solid #818cf8;
