@@ -434,3 +434,8 @@ verify_jwt = false
 
 [functions.identify-media]
 verify_jwt = false
+
+[functions.notify-new-user]
+# Chamada pelo banco (pg_net), não pelo navegador: a autenticação é um segredo compartilhado
+# validado dentro da função (cabeçalho x-webhook-secret).
+verify_jwt = false

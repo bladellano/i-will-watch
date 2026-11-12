@@ -805,6 +805,13 @@ publicação.
     80 caracteres, normalização do nome e gatilho resistente a nomes
     vazios/longos. Usuários anteriores ao ajuste ficam com nome vazio até
     preencherem em `/perfil`.
+-   **Aviso de novo usuário:** quando o cadastro é concluído (e-mail
+    confirmado), o gatilho `on_auth_user_confirmed` (pg_net) chama a
+    Edge Function `notify-new-user`, que envia e-mail ao administrador
+    por SMTP (Gmail, mesma conta do Auth, mas credenciais como secrets
+    da função: o SMTP do Auth não é reutilizável por funções). Segredo
+    compartilhado em `x-webhook-secret`; URL e segredo no Vault; falhas
+    não bloqueiam o cadastro. Configuração em `docs/publicacao.md` 3.2.
 -   **Publicação:** `docs/publicacao.md` ganhou a seção 3.1 (SMTP
     próprio, Site URL e limite de e-mails do Supabase).
 

@@ -45,6 +45,43 @@ O serviço de e-mail embutido do Supabase envia só **2 e-mails por hora no proj
 
 Alternativa para grupos pequenos e de confiança: desligar **Confirm email** em Authentication → Sign In / Providers → Email (o cadastro entra direto, sem verificação do e-mail).
 
+### 3.2 Aviso por e-mail quando um novo usuário se cadastra
+
+Quando alguém **conclui** o cadastro (confirma o e-mail, ou entra direto se "Confirm email" estiver desligado), o banco chama a Edge Function `notify-new-user`, que envia um e-mail ao administrador com nome, e-mail e horário.
+
+Importante: o SMTP configurado em Authentication só serve aos e-mails do próprio Auth. A função usa **a mesma conta Gmail**, mas com credenciais guardadas como *secrets* da função. Falhas na notificação nunca impedem um cadastro.
+
+Configuração, uma única vez (rode no terminal do projeto; **nunca cole senhas ou segredos em chats**):
+
+1. Gere um segredo compartilhado: `openssl rand -hex 32`
+2. Defina os secrets da função (use a **senha de app** do Gmail):
+   ```
+   npx supabase secrets set SMTP_HOST=smtp.gmail.com SMTP_PORT=465 \
+     SMTP_USER=seu-gmail@gmail.com SMTP_PASS=senha-de-app-sem-espacos \
+     ADMIN_NOTIFY_EMAIL=email-que-recebe@exemplo.com \
+     NOTIFY_WEBHOOK_SECRET=o-segredo-gerado
+   ```
+   Opcional: `SMTP_FROM` (padrão: o próprio `SMTP_USER`).
+3. Publique a função e a migração:
+   ```
+   npx supabase functions deploy notify-new-user
+   npx supabase db push
+   ```
+4. No **SQL Editor** do Supabase, guarde no Vault a URL da função e o mesmo segredo:
+   ```sql
+   select vault.create_secret('https://SEU_PROJETO.supabase.co/functions/v1/notify-new-user', 'notify_new_user_url');
+   select vault.create_secret('o-segredo-gerado', 'notify_new_user_secret');
+   ```
+5. Teste a função direto (deve chegar um e-mail e responder `{"ok":true}`):
+   ```
+   curl -X POST https://SEU_PROJETO.supabase.co/functions/v1/notify-new-user \
+     -H "Content-Type: application/json" -H "x-webhook-secret: o-segredo-gerado" \
+     -d '{"email":"teste@exemplo.com","name":"Teste"}'
+   ```
+6. Teste o fluxo real com um cadastro novo e confirme o e-mail.
+
+Diagnóstico: `select * from net._http_response order by created desc limit 5;` mostra a resposta da função às chamadas do banco; **Edge Functions → notify-new-user → Logs** mostra erros de SMTP. Sem os segredos do Vault, o gatilho não faz nada. Para desligar: apague os dois segredos do Vault.
+
 ## 4. Verificação pós-publicação
 
 1. Abra a URL em HTTPS, cadastre-se (ou entre) e confirme o e-mail.
