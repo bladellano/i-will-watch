@@ -43,7 +43,11 @@ O serviço de e-mail embutido do Supabase envia só **2 e-mails por hora no proj
 3. Confira a **Site URL**: se ficar `http://localhost:3000`, o link do e-mail de confirmação aponta para o endereço errado.
 4. Teste com um e-mail novo e veja também a pasta de spam.
 
-Alternativa para grupos pequenos e de confiança: desligar **Confirm email** em Authentication → Sign In / Providers → Email (o cadastro entra direto, sem verificação do e-mail).
+Alternativa para grupos pequenos e de confiança: desligar **Confirm email** em Authentication → Sign In / Providers → Email.
+
+- **Efeito:** o cadastro autentica o usuário na hora. O app já trata os dois casos (`signUp` devolve a sessão; sem sessão, mostra o aviso de confirmação), então não há mudança de código. O aviso de novo usuário (3.2) continua funcionando.
+- **Risco:** o e-mail informado não é verificado, e qualquer pessoa com o link pode criar conta. Para controlar, use **Allow new users to sign up** (Authentication → Sign In / Providers) e deixe o cadastro ligado só enquanto convida alguém.
+- O ajuste vale só para o projeto na nuvem; o `enable_confirmations` do `supabase/config.toml` afeta apenas o ambiente local.
 
 ### 3.2 Aviso por e-mail quando um novo usuário se cadastra
 
