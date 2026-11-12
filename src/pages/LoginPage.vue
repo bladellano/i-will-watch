@@ -37,14 +37,21 @@ async function onSubmit(credentials: Credentials) {
       @submit="onSubmit"
     />
     <section aria-labelledby="sobre-app" class="mt-6 border-t border-slate-800 pt-5 text-sm leading-relaxed text-slate-400">
-      <h3 id="sobre-app" class="mb-2 font-medium text-slate-200">Para que serve este app</h3>
-      <p>
-        Todos os dias, ao navegar pela internet e pelas redes sociais, encontro sugestões de filmes e séries. Quando algum título
-        chama minha atenção, envio um e-mail para mim mesmo com o nome, o ano de lançamento e, às vezes, a imagem da capa. Em
-        outras ocasiões, envio essas informações para meu próprio WhatsApp ou anoto em um papel. A ideia desta aplicação é
-        centralizar esses registros em um lugar simples, acessível pelo computador e pelo celular, onde seja possível adicionar
-        rapidamente filmes e séries e organizá-los em listas, como a de títulos para assistir depois.
+      <h3 id="sobre-app" class="mb-2 font-medium text-slate-200">Sobre a aplicação</h3>
+      <p class="mb-3 font-medium text-slate-200">Organize seus filmes e séries em um só lugar!</p>
+      <p class="mb-3">
+        Esta aplicação foi criada para facilitar o registro e a organização de filmes e séries que você encontra durante sua
+        navegação pela internet, redes sociais ou recomendações de amigos.
       </p>
+      <p class="mb-3">
+        Encontrou um título interessante? Adicione-o à sua coleção, registre informações como nome, ano de lançamento e imagem
+        da capa, e organize tudo em listas personalizadas.
+      </p>
+      <p class="mb-3">
+        Assim, você não precisa mais depender de anotações, mensagens ou e-mails para lembrar daquele filme ou série que deseja
+        assistir.
+      </p>
+      <p>Sua próxima sessão começa com uma boa lista! 👌</p>
     </section>
     <p class="mt-4 text-center text-sm text-slate-400">
       Não tem conta?
