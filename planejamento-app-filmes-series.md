@@ -812,8 +812,32 @@ publicação.
     da função: o SMTP do Auth não é reutilizável por funções). Segredo
     compartilhado em `x-webhook-secret`; URL e segredo no Vault; falhas
     não bloqueiam o cadastro. Configuração em `docs/publicacao.md` 3.2.
+-   **Widget "Últimas obras adicionadas":** a adição mais recente de
+    cada um dos 5 membros mais recentes (no máximo 1 por membro;
+    primeiro nome, obra, ano e data). As tabelas
+    seguem privadas: a função `recent_additions` (security definer,
+    só autenticados) expõe apenas esses campos, nunca e-mail. Aparece na
+    margem direita em telas ≥ 1700 px e abaixo das listas na Home nas
+    demais. Migrações `20261111190000_recent_additions.sql` e
+    `20261111200000_recent_additions_per_member.sql` e
+    `20261111210000_recent_additions_details.sql`.
+-   **Modal de detalhes da obra:** clicar na capa (lista e widget) abre
+    um modal com título, tipo, ano, nota TMDB, gêneros, sinopse e link
+    do TMDB (`MediaDetailsDialog`); o restante do card da lista continua
+    abrindo a página de edição.
 -   **Publicação:** `docs/publicacao.md` ganhou a seção 3.1 (SMTP
     próprio, Site URL e limite de e-mails do Supabase).
+-   **Curtidas (widget "Últimas obras adicionadas"):** coração com
+    contagem em cada linha e no modal de detalhes. Cada membro curte uma
+    obra no máximo uma vez, clicar de novo remove; não é possível curtir
+    a própria obra (só vê a contagem). Tabela `item_likes` (id da obra, id
+    do dono, id de quem curtiu; o dono é preenchido pelo banco) e RPC
+    `recent_additions` com `like_count`, `liked_by_me`, `is_own`. Quem
+    curtiu não é exibido. Migração `20261112090000_item_likes.sql`, exige
+    `npx supabase db push`. Componente reutilizável
+    `src/modules/likes/components/LikeButton.vue` para os outros cards.
+    Notificação por e-mail ao dono: pronta e **desligada** (Edge Function
+    `notify-like`; ver `docs/publicacao.md`, seção 3.3).
 
 ## 11.1 Andamento
 

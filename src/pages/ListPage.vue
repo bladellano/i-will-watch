@@ -3,6 +3,7 @@ import { computed, ref, watch } from 'vue'
 import { RouterLink, useRoute } from 'vue-router'
 import { ArrowLeft, Film, Pin, PinOff, Plus, Search } from 'lucide-vue-next'
 import AppLayout from '@/layouts/AppLayout.vue'
+import MediaDetailsDialog from '@/modules/media/components/MediaDetailsDialog.vue'
 import { fetchList } from '@/modules/lists/services/lists.service'
 import { fetchListItems, setListItemPinned } from '@/modules/lists/services/list-items.service'
 import { sortListItems } from '@/modules/lists/utils/order'
@@ -22,6 +23,7 @@ const error = ref('')
 const statusFilter = ref<'' | WatchStatus>('')
 const typeFilter = ref<'' | MediaType>('')
 const search = ref('')
+const detailsItem = ref<ListItem | null>(null)
 const pinBusyId = ref<string | null>(null)
 const pinError = ref('')
 
@@ -145,16 +147,7 @@ watch(listId, load, { immediate: true })
               item.is_pinned ? 'border-indigo-400/60 ring-1 ring-indigo-400/30' : 'border-slate-800',
             ]"
           >
-            <img
-              v-if="posterUrl(item.media.poster_path, 'w185')"
-              :src="posterUrl(item.media.poster_path, 'w185') ?? undefined"
-              :alt="`Capa de ${item.media.title}`"
-              loading="lazy"
-              class="h-24 w-16 shrink-0 rounded-md object-cover"
-            />
-            <div v-else class="flex h-24 w-16 shrink-0 items-center justify-center rounded-md bg-slate-800 text-slate-500">
-              <Film class="h-6 w-6" aria-hidden="true" />
-            </div>
+            <div class="h-24 w-16 shrink-0" aria-hidden="true" />
             <div class="min-w-0">
               <p class="truncate font-medium">{{ item.media.title }}</p>
               <p class="mt-1 text-sm text-slate-400">
@@ -176,6 +169,23 @@ watch(listId, load, { immediate: true })
           </RouterLink>
           <button
             type="button"
+            class="absolute left-2 top-2 z-10 h-24 w-16 overflow-hidden rounded-md ring-indigo-400 transition hover:brightness-110 active:scale-[0.98]"
+            :aria-label="`Ver detalhes de ${item.media.title}`"
+            @click="detailsItem = item"
+          >
+            <img
+              v-if="posterUrl(item.media.poster_path, 'w185')"
+              :src="posterUrl(item.media.poster_path, 'w185') ?? undefined"
+              alt=""
+              loading="lazy"
+              class="h-full w-full object-cover"
+            />
+            <span v-else class="flex h-full w-full items-center justify-center bg-slate-800 text-slate-500">
+              <Film class="h-6 w-6" aria-hidden="true" />
+            </span>
+          </button>
+          <button
+            type="button"
             :aria-pressed="item.is_pinned ? 'true' : 'false'"
             :aria-label="`${item.is_pinned ? 'Desafixar' : 'Fixar'} ${item.media.title}`"
             :title="item.is_pinned ? 'Desafixar' : 'Fixar'"
@@ -192,5 +202,6 @@ watch(listId, load, { immediate: true })
         </li>
       </ul>
     </template>
+    <MediaDetailsDialog :media="detailsItem?.media ?? null" @close="detailsItem = null" />
   </AppLayout>
 </template>

@@ -56,3 +56,37 @@ export function safeEqual(a: string, b: string): boolean {
   for (let i = 0; i < a.length; i++) diff |= a.charCodeAt(i) ^ b.charCodeAt(i)
   return diff === 0
 }
+
+// ---------------------------------------------------------------------------
+// Notificação de curtida (enviada ao DONO da obra)
+// ---------------------------------------------------------------------------
+
+export interface LikeEvent {
+  owner_id: string
+  liker_name: string
+  title: string
+}
+
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+
+export function parseLikeEvent(body: unknown): LikeEvent | null {
+  if (!body || typeof body !== 'object') return null
+  const raw = body as Record<string, unknown>
+  if (typeof raw.owner_id !== 'string' || !UUID.test(raw.owner_id)) return null
+  if (typeof raw.title !== 'string' || raw.title.trim() === '') return null
+  const liker = typeof raw.liker_name === 'string' && raw.liker_name.trim() !== '' ? raw.liker_name : 'Um membro'
+  return {
+    owner_id: raw.owner_id,
+    liker_name: clip(oneLine(liker), 80),
+    title: clip(oneLine(raw.title), 200),
+  }
+}
+
+export function buildLikeNotification(event: LikeEvent): { subject: string; text: string; html: string } {
+  const subject = `${event.liker_name} curtiu "${event.title}"`
+  return {
+    subject,
+    text: `${event.liker_name} curtiu a obra "${event.title}" que você adicionou no app "Minha lista de filmes e séries".`,
+    html: `<p><strong>${escapeHtml(event.liker_name)}</strong> curtiu a obra <strong>${escapeHtml(event.title)}</strong> que você adicionou no app Minha lista de filmes e séries.</p>`,
+  }
+}

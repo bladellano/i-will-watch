@@ -439,3 +439,7 @@ verify_jwt = false
 # Chamada pelo banco (pg_net), não pelo navegador: a autenticação é um segredo compartilhado
 # validado dentro da função (cabeçalho x-webhook-secret).
 verify_jwt = false
+
+[functions.notify-like]
+# Chamada pelo banco (pg_net): autenticação por segredo compartilhado (x-webhook-secret).
+verify_jwt = false

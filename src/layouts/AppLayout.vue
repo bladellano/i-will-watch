@@ -2,6 +2,8 @@
 import { computed, onMounted } from 'vue'
 import { LogOut, Clapperboard, UserRound } from 'lucide-vue-next'
 import { RouterLink, useRouter } from 'vue-router'
+import { useActivityStore } from '@/modules/activity/stores/activity.store'
+import RecentAdditionsWidget from '@/modules/activity/components/RecentAdditionsWidget.vue'
 import { useProfileStore } from '@/modules/profile/stores/profile.store'
 import { displayName } from '@/modules/profile/utils/name'
 import { useAuthStore } from '@/modules/auth/stores/auth.store'
@@ -10,6 +12,7 @@ import { signOut } from '@/modules/auth/services/auth.service'
 const auth = useAuthStore()
 const router = useRouter()
 const profile = useProfileStore()
+const activity = useActivityStore()
 const shownName = computed(() => displayName(profile.name, auth.user?.email))
 
 onMounted(() => {
@@ -19,6 +22,7 @@ onMounted(() => {
 async function onSignOut() {
   await signOut()
   profile.reset()
+  activity.reset()
   await router.push({ name: 'login' })
 }
 </script>
@@ -60,5 +64,12 @@ async function onSignOut() {
     <main id="conteudo" tabindex="-1" class="mx-auto max-w-5xl px-4 py-6 outline-none">
       <slot />
     </main>
+    <!-- Telas largas: widget na margem direita do conteúdo. Nas demais, a HomePage o exibe inline. -->
+    <aside
+      aria-label="Atividade recente"
+      class="fixed top-20 left-1/2 ml-[33.5rem] hidden w-72 min-[1700px]:block"
+    >
+      <RecentAdditionsWidget />
+    </aside>
   </div>
 </template>

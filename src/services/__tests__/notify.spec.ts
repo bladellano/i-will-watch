@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { buildNotification, parseNewUserEvent, safeEqual } from '../../../supabase/functions/_shared/notify'
+import { buildLikeNotification, buildNotification, parseLikeEvent, parseNewUserEvent, safeEqual } from '../../../supabase/functions/_shared/notify'
 
 describe('notify (novo usuário)', () => {
   it('rejeita corpo inválido ou sem e-mail', () => {
@@ -35,5 +35,21 @@ describe('notify (novo usuário)', () => {
     expect(safeEqual('abc', 'abc')).toBe(true)
     expect(safeEqual('abc', 'abd')).toBe(false)
     expect(safeEqual('abc', 'abcd')).toBe(false)
+  })
+})
+
+describe('notify (curtida)', () => {
+  const owner = '3f2b8c1e-9d4a-4e6b-8a1c-5d7e9f0a1b2c'
+  it('rejeita dono inválido ou título vazio', () => {
+    for (const body of [null, {}, { owner_id: 'x', title: 'A' }, { owner_id: owner, title: ' ' }]) {
+      expect(parseLikeEvent(body)).toBeNull()
+    }
+  })
+  it('usa nome padrão, limpa quebras de linha e escapa HTML', () => {
+    const event = parseLikeEvent({ owner_id: owner, liker_name: '', title: 'A\nBcc: x@y.com <b>' })!
+    expect(event.liker_name).toBe('Um membro')
+    const msg = buildLikeNotification(event)
+    expect(msg.subject).not.toMatch(/[\r\n]/)
+    expect(msg.html).not.toContain('<b>')
   })
 })

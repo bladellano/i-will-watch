@@ -1,5 +1,5 @@
-import nodemailer from 'npm:nodemailer@6'
 import { corsHeaders, errorResponse, json, readJson } from '../_shared/http.ts'
+import { sendMail, smtpConfigured } from '../_shared/mail.ts'
 import { buildNotification, parseNewUserEvent, safeEqual } from '../_shared/notify.ts'
 
 /**
@@ -18,28 +18,14 @@ Deno.serve(async (req) => {
   const event = parseNewUserEvent(await readJson(req))
   if (!event) return errorResponse(400, 'Dados inválidos.')
 
-  const host = Deno.env.get('SMTP_HOST')
-  const user = Deno.env.get('SMTP_USER')
-  const pass = Deno.env.get('SMTP_PASS')
   const to = Deno.env.get('ADMIN_NOTIFY_EMAIL')
-  if (!host || !user || !pass || !to) {
+  if (!smtpConfigured() || !to) {
     console.error('notify-new-user: secrets SMTP_HOST/SMTP_USER/SMTP_PASS/ADMIN_NOTIFY_EMAIL ausentes')
     return errorResponse(500, 'Notificação não configurada.')
   }
-  const port = Number(Deno.env.get('SMTP_PORT') ?? '465')
-  const from = Deno.env.get('SMTP_FROM') ?? user
 
   try {
-    const transporter = nodemailer.createTransport({
-      host,
-      port,
-      secure: port === 465,
-      auth: { user, pass },
-      connectionTimeout: 10_000,
-      socketTimeout: 15_000,
-    })
-    const message = buildNotification(event)
-    await transporter.sendMail({ from, to, subject: message.subject, text: message.text, html: message.html })
+    await sendMail({ to, ...buildNotification(event) })
     return json({ ok: true })
   } catch (error) {
     // Sem detalhes na resposta (e sem credenciais nos logs).

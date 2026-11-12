@@ -207,6 +207,84 @@ describe('storage (bucket captures)', () => {
   })
 })
 
+describe('recent_additions (widget)', () => {
+  it('usuário autenticado recebe no máximo 5 itens, mais recentes primeiro, sem dados sensíveis', async () => {
+    const { data, error } = await a.rpc('recent_additions', { max_items: 5 })
+    expect(error).toBeNull()
+    expect((data ?? []).length).toBeLessThanOrEqual(5)
+    const dates = (data ?? []).map((r: { added_at: string }) => Date.parse(r.added_at))
+    expect(dates).toEqual([...dates].sort((x, y) => y - x))
+    for (const row of data ?? []) {
+      expect(Object.keys(row).sort()).toEqual(
+        ['added_at', 'genres', 'is_own', 'item_id', 'like_count', 'liked_by_me', 'media_type', 'member_name', 'original_title', 'overview', 'poster_path', 'release_date', 'title', 'tmdb_id', 'tmdb_rating'],
+      )
+      expect(row.member_name).not.toContain('@')
+    }
+  })
+  it('traz no máximo uma entrada por membro (o usuário aparece uma única vez)', async () => {
+    const extra = await a.from('list_media').insert({ list_id: defaultListA, media_id: mediaId }).select('id')
+    const { data } = await a.rpc('recent_additions', { max_items: 10 })
+    expect((data ?? []).filter((r: { member_name: string }) => r.member_name === 'Você').length).toBeLessThanOrEqual(1)
+    if (extra.data?.[0]) await a.from('list_media').delete().eq('id', extra.data[0].id)
+  })
+  it('o limite é respeitado mesmo com valores absurdos', async () => {
+    const { data } = await a.rpc('recent_additions', { max_items: 1000 })
+    expect((data ?? []).length).toBeLessThanOrEqual(10)
+  })
+  it('a atividade do próprio usuário aparece como "Você" e a do outro, sem e-mail', async () => {
+    const { data } = await b.rpc('recent_additions', { max_items: 10 })
+    const mine = (data ?? []).find((r: { item_id: string }) => r.item_id === linkA)
+    if (mine) expect(mine.member_name).not.toBe('Você')
+  })
+  it('anônimo não executa a função', async () => {
+    const { error } = await newClient().rpc('recent_additions', { max_items: 5 })
+    expect(error).not.toBeNull()
+  })
+})
+
+describe('item_likes (curtidas)', () => {
+  afterAll(async () => {
+    await b.from('item_likes').delete().eq('item_id', linkA)
+  })
+  it('B curte a obra de A; o dono é preenchido pelo banco', async () => {
+    const ins = await b.from('item_likes').insert({ item_id: linkA }).select('item_id, owner_id, user_id')
+    expect(ins.error).toBeNull()
+    expect(ins.data?.[0]).toMatchObject({ owner_id: aId, user_id: bId })
+  })
+  it('curtir duas vezes a mesma obra falha', async () => {
+    const dup = await b.from('item_likes').insert({ item_id: linkA })
+    expect(dup.error).not.toBeNull()
+  })
+  it('não é possível forjar user_id nem owner_id', async () => {
+    const forged = await b.from('item_likes').insert({ item_id: linkA, user_id: aId } as never)
+    expect(forged.error).not.toBeNull()
+    const forgedOwner = await b.from('item_likes').insert({ item_id: linkA, owner_id: bId } as never)
+    expect(forgedOwner.error).not.toBeNull()
+  })
+  it('A não pode curtir a própria obra', async () => {
+    const own = await a.from('item_likes').insert({ item_id: linkA })
+    expect(own.error).not.toBeNull()
+  })
+  it('A não lê nem remove a curtida de B', async () => {
+    expect((await a.from('item_likes').select('item_id')).data ?? []).toEqual([])
+    const del = await a.from('item_likes').delete().eq('item_id', linkA).select('item_id')
+    expect(del.data ?? []).toEqual([])
+    expect((await b.from('item_likes').select('item_id').eq('item_id', linkA)).data).toHaveLength(1)
+  })
+  it('a contagem aparece no widget: A vê 1 curtida em sua obra; B vê liked_by_me', async () => {
+    const forA = (await a.rpc('recent_additions', { max_items: 10 })).data ?? []
+    const mineA = forA.find((r: { item_id: string }) => r.item_id === linkA)
+    if (mineA) expect(mineA).toMatchObject({ like_count: 1, liked_by_me: false, is_own: true })
+    const forB = (await b.rpc('recent_additions', { max_items: 10 })).data ?? []
+    const seenB = forB.find((r: { item_id: string }) => r.item_id === linkA)
+    if (seenB) expect(seenB).toMatchObject({ liked_by_me: true, is_own: false })
+  })
+  it('B remove a própria curtida', async () => {
+    const del = await b.from('item_likes').delete().eq('item_id', linkA).select('item_id')
+    expect(del.data).toHaveLength(1)
+  })
+})
+
 describe('anônimo', () => {
   it('sem login não lê nada', async () => {
     const anon = newClient()

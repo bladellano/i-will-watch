@@ -82,6 +82,22 @@ Configuração, uma única vez (rode no terminal do projeto; **nunca cole senhas
 
 Diagnóstico: `select * from net._http_response order by created desc limit 5;` mostra a resposta da função às chamadas do banco; **Edge Functions → notify-new-user → Logs** mostra erros de SMTP. Sem os segredos do Vault, o gatilho não faz nada. Para desligar: apague os dois segredos do Vault.
 
+### 3.3 Aviso por e-mail ao dono quando curtem a obra (opcional, desligado)
+
+Reaproveita o SMTP e o `NOTIFY_WEBHOOK_SECRET` da seção 3.2. Sem os passos abaixo, as curtidas funcionam normalmente e nenhum e-mail é enviado.
+
+1. Publique a função e a migração (se ainda não fez):
+   ```
+   npx supabase functions deploy notify-like
+   npx supabase db push
+   ```
+2. No **SQL Editor**, crie os segredos (use o mesmo valor de `NOTIFY_WEBHOOK_SECRET`):
+   ```sql
+   select vault.create_secret('https://SEU_PROJETO.supabase.co/functions/v1/notify-like', 'notify_like_url');
+   select vault.create_secret('o-mesmo-segredo-da-secao-3-2', 'notify_like_secret');
+   ```
+Diagnóstico: `select * from net._http_response order by created desc limit 5;` e **Edge Functions → notify-like → Logs**. Para desligar: apague os dois segredos do Vault.
+
 ## 4. Verificação pós-publicação
 
 1. Abra a URL em HTTPS, cadastre-se (ou entre) e confirme o e-mail.

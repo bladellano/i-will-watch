@@ -37,6 +37,15 @@ test('lista, obra, status e nota', async ({ page }) => {
   await expect(page.getByText('Fixado', { exact: true })).toBeVisible()
   await page.getByRole('button', { name: /^Desafixar / }).first().click()
   await expect(page.getByText('Fixado', { exact: true })).toHaveCount(0)
+  // Clicar na capa abre o modal de detalhes; Esc fecha
+  await page.getByRole('button', { name: /^Ver detalhes de / }).first().click()
+  const details = page.getByRole('dialog').filter({ hasText: 'Ver no TMDB' })
+  await expect(details).toBeVisible()
+  await page.keyboard.press('Escape')
+  await expect(details).toBeHidden()
+  await page.getByRole('button', { name: /^Ver detalhes de / }).first().click()
+  await details.getByRole('button', { name: 'Fechar' }).click()
+  await expect(details).toBeHidden()
   await page.getByRole('main').getByRole('list').getByRole('link').first().click()
 
   // Marcar como assistida com nota
@@ -78,6 +87,7 @@ test('lista, obra, status e nota', async ({ page }) => {
 test('a lista default não oferece exclusão', async ({ page }) => {
   requireTestUser()
   await login(page)
+  await expect(page.getByRole('heading', { name: 'Últimas obras adicionadas' })).toBeVisible()
   const defaultCard = page.getByRole('listitem').filter({ hasText: /padr/i }).first()
   await expect(defaultCard.getByRole('button', { name: /Editar lista/ })).toBeVisible()
   await expect(defaultCard.getByRole('button', { name: /Excluir lista/ })).toHaveCount(0)
