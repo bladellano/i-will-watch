@@ -4,6 +4,7 @@ import { RouterLink, useRoute, useRouter } from 'vue-router'
 import AuthLayout from '@/layouts/AuthLayout.vue'
 import AuthForm from '@/modules/auth/components/AuthForm.vue'
 import { signIn, type Credentials } from '@/modules/auth/services/auth.service'
+import loginBackground from '@/assets/images/login-background.webp'
 
 const router = useRouter()
 const route = useRoute()
@@ -27,7 +28,7 @@ async function onSubmit(credentials: Credentials) {
 </script>
 
 <template>
-  <AuthLayout>
+  <AuthLayout :background-src="loginBackground">
     <h2 class="mb-4 text-lg font-medium">Entrar</h2>
     <AuthForm
       submit-label="Entrar"

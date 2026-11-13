@@ -1,9 +1,29 @@
 <script setup lang="ts">
+import { computed } from 'vue'
 import { Clapperboard } from 'lucide-vue-next'
+
+const props = defineProps<{ backgroundSrc?: string }>()
+
+const fadeMask = 'linear-gradient(to bottom, black 0%, transparent 70%)'
+const backgroundStyle = computed(() =>
+  props.backgroundSrc
+    ? {
+        backgroundImage: `url(${props.backgroundSrc})`,
+        maskImage: fadeMask,
+        WebkitMaskImage: fadeMask,
+      }
+    : undefined,
+)
 </script>
 
 <template>
-  <main class="flex min-h-screen items-center justify-center bg-slate-950 px-4 text-slate-100">
+  <main class="relative isolate flex min-h-screen items-center justify-center overflow-hidden bg-slate-950 px-4 text-slate-100">
+    <div
+      v-if="backgroundSrc"
+      aria-hidden="true"
+      class="pointer-events-none absolute inset-0 -z-10 bg-cover bg-top bg-no-repeat opacity-60"
+      :style="backgroundStyle"
+    />
     <div class="w-full max-w-sm">
       <div class="mb-8 flex items-center justify-center gap-2">
         <Clapperboard class="h-7 w-7 text-indigo-400" aria-hidden="true" />
