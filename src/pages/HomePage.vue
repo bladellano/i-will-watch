@@ -5,6 +5,7 @@ import { Camera, FolderPlus, Pencil, Plus, Trash2 } from 'lucide-vue-next'
 import AppLayout from '@/layouts/AppLayout.vue'
 import ConfirmDialog from '@/components/ui/ConfirmDialog.vue'
 import RecentAdditionsWidget from '@/modules/activity/components/RecentAdditionsWidget.vue'
+import RecentMembersWidget from '@/modules/members/components/RecentMembersWidget.vue'
 import ListFormDialog from '@/modules/lists/components/ListFormDialog.vue'
 import { useListsStore } from '@/modules/lists/stores/lists.store'
 import { useCapturesStore } from '@/modules/capture/stores/captures.store'
@@ -158,6 +159,9 @@ async function onConfirmDelete() {
 
     <div class="mt-10 max-w-md min-[1700px]:hidden">
       <RecentAdditionsWidget />
+    </div>
+    <div class="mt-6 max-w-md min-[1700px]:hidden">
+      <RecentMembersWidget />
     </div>
 
     <ListFormDialog

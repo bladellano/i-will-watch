@@ -22,3 +22,11 @@ export interface MemberListItem {
   release_date: string | null
   poster_path: string | null
 }
+
+/** Membro recém-cadastrado (widget "Últimos membros cadastrados"). Só o primeiro nome, sem e-mail. */
+export interface RecentMember {
+  member_id: string
+  member_name: string
+  joined_at: string
+  is_own: boolean
+}

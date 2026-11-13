@@ -242,6 +242,33 @@ describe('recent_additions (widget)', () => {
   })
 })
 
+describe('recent_members (widget de membros cadastrados)', () => {
+  it('devolve no máximo 25 membros, mais recentes primeiro, sem e-mail nem listas', async () => {
+    const { data, error } = await a.rpc('recent_members', { max_items: 1000 })
+    expect(error).toBeNull()
+    expect((data ?? []).length).toBeLessThanOrEqual(25)
+    const dates = (data ?? []).map((r: { joined_at: string }) => Date.parse(r.joined_at))
+    expect(dates).toEqual([...dates].sort((x, y) => y - x))
+    for (const row of data ?? []) {
+      expect(Object.keys(row).sort()).toEqual(['is_own', 'joined_at', 'member_id', 'member_name'])
+      expect(row.member_name).not.toContain('@')
+    }
+  })
+  it('marca o próprio usuário como "Você" e o outro sem "is_own"', async () => {
+    const { data } = await b.rpc('recent_members', { max_items: 25 })
+    const other = (data ?? []).find((r: { member_id: string }) => r.member_id === aId)
+    if (other) expect(other.is_own).toBe(false)
+    const self = (data ?? []).find((r: { member_id: string }) => r.member_id === bId)
+    if (self) {
+      expect(self.is_own).toBe(true)
+      expect(self.member_name).toBe('Você')
+    }
+  })
+  it('anônimo não executa a função', async () => {
+    expect((await newClient().rpc('recent_members', { max_items: 5 })).error).not.toBeNull()
+  })
+})
+
 describe('compartilhamento de listas (modal do widget)', () => {
   afterAll(async () => {
     await a.from('profiles').update({ share_lists: true }).eq('id', aId)
