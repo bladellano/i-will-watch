@@ -43,7 +43,14 @@ async function onSignOut() {
       <div class="mx-auto flex max-w-5xl items-center justify-between px-4 py-3">
         <div class="flex items-center gap-2 font-semibold">
           <Clapperboard class="h-5 w-5 text-indigo-400" aria-hidden="true" />
-          <h1>Minha lista</h1>
+          <h1>
+            <RouterLink
+              :to="{ name: 'home' }"
+              class="rounded-md hover:text-indigo-300 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-400"
+            >
+              Home
+            </RouterLink>
+          </h1>
         </div>
         <div class="flex items-center gap-3 text-sm">
           <RouterLink
