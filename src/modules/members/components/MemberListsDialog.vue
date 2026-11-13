@@ -3,6 +3,7 @@ import { computed, ref, useId, watch } from 'vue'
 import { ArrowLeft, Film, Tv, X } from 'lucide-vue-next'
 import { posterUrl, releaseYear } from '@/modules/media/services/media.service'
 import { MEDIA_TYPE_LABELS } from '@/modules/media/types'
+import CopyToListSelect from '@/modules/lists/components/CopyToListSelect.vue'
 import { useMembersStore } from '../stores/members.store'
 import type { MemberRef } from '../types'
 
@@ -122,12 +123,13 @@ function onDialogClick(event: MouseEvent) {
                   <Film v-else class="size-4" aria-hidden="true" />
                 </span>
               </span>
-              <span class="min-w-0">
+              <div class="min-w-0 flex-1">
                 <span class="block text-sm font-medium leading-snug">{{ item.title }}</span>
                 <span class="block text-xs text-slate-400">
                   {{ MEDIA_TYPE_LABELS[item.media_type] }} · {{ releaseYear(item.release_date) }}
                 </span>
-              </span>
+                <CopyToListSelect :tmdb-id="item.tmdb_id" :media-type="item.media_type" :title="item.title" />
+              </div>
             </li>
           </ul>
         </template>

@@ -4,6 +4,7 @@ import { Film, Tv } from 'lucide-vue-next'
 import { posterUrl, releaseYear } from '@/modules/media/services/media.service'
 import MediaDetailsDialog from '@/modules/media/components/MediaDetailsDialog.vue'
 import LikeButton from '@/modules/likes/components/LikeButton.vue'
+import CopyToListSelect from '@/modules/lists/components/CopyToListSelect.vue'
 import MemberListsDialog from '@/modules/members/components/MemberListsDialog.vue'
 import type { MemberRef } from '@/modules/members/types'
 import { useActivityStore } from '../stores/activity.store'
@@ -118,6 +119,13 @@ onMounted(() => {
         :busy="store.busyLikes.includes(selected.item_id)"
         :title="selected.title"
         @toggle="store.toggleLike(selected.item_id)"
+      />
+      <CopyToListSelect
+        v-if="selected && !selected.is_own"
+        :key="selected.item_id"
+        :tmdb-id="selected.tmdb_id"
+        :media-type="selected.media_type"
+        :title="selected.title"
       />
     </template>
   </MediaDetailsDialog>

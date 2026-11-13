@@ -17,6 +17,7 @@ export interface MemberList {
 /** Obra de uma lista de outro membro: só dados de exibição, sem notas nem avaliação pessoal. */
 export interface MemberListItem {
   id: string
+  tmdb_id: number
   title: string
   media_type: MediaType
   release_date: string | null
