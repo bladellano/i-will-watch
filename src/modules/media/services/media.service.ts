@@ -1,3 +1,5 @@
+import { requestError } from '@/services/network'
+import { supabase } from '@/services/supabase/client'
 import { invokeFunction } from '@/services/supabase/functions'
 import type { AddMediaResponse, MediaType, TmdbSearchResponse, WatchStatus } from '../types'
 
@@ -40,4 +42,27 @@ export async function addMedia(input: AddMediaInput): Promise<AddMediaResponse> 
     },
     'Não foi possível adicionar a obra. Tente novamente.',
   )
+}
+
+/** Dados de uma obra do catálogo para o modal de detalhes (o catálogo é legível por qualquer membro logado). */
+export interface MediaDetails {
+  tmdb_id: number
+  media_type: MediaType
+  title: string
+  original_title: string | null
+  release_date: string | null
+  overview: string | null
+  poster_path: string | null
+  tmdb_rating: number | null
+  genres: string[] | null
+}
+
+export async function fetchMediaDetails(mediaId: string): Promise<MediaDetails> {
+  const { data, error } = await supabase
+    .from('media')
+    .select('tmdb_id, media_type, title, original_title, release_date, overview, poster_path, tmdb_rating, genres')
+    .eq('id', mediaId)
+    .maybeSingle()
+  if (error || !data) throw requestError('Não foi possível carregar os detalhes da obra.')
+  return data as MediaDetails
 }

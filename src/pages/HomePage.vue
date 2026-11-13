@@ -4,6 +4,7 @@ import { RouterLink } from 'vue-router'
 import { Camera, FolderPlus, Pencil, Plus, Trash2 } from 'lucide-vue-next'
 import AppLayout from '@/layouts/AppLayout.vue'
 import ConfirmDialog from '@/components/ui/ConfirmDialog.vue'
+import CommunityTimeline from '@/modules/timeline/components/CommunityTimeline.vue'
 import RecentAdditionsWidget from '@/modules/activity/components/RecentAdditionsWidget.vue'
 import RecentMembersWidget from '@/modules/members/components/RecentMembersWidget.vue'
 import ListFormDialog from '@/modules/lists/components/ListFormDialog.vue'
@@ -156,6 +157,8 @@ async function onConfirmDelete() {
         </li>
       </ul>
     </section>
+
+    <CommunityTimeline />
 
     <div class="mt-10 max-w-md min-[1700px]:hidden">
       <RecentAdditionsWidget />

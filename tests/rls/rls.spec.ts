@@ -366,6 +366,147 @@ describe('item_likes (curtidas)', () => {
   })
 })
 
+describe('Observações publicadas e timeline da comunidade', () => {
+  type TimelineRow = {
+    event_type: string
+    event_id: string
+    occurred_at: string
+    actor_name: string
+    is_own: boolean
+    comment_body: string | null
+    comment_edited_at: string | null
+    item_id: string | null
+    owner_name: string | null
+  }
+  type NoteState = { notes: string | null; notes_published_at: string | null; notes_edited_at: string | null; notes_hidden: boolean }
+  const timeline = async (client: SupabaseClient, type = 'all') =>
+    ((await client.rpc('community_timeline', { p_type: type, p_limit: 50 })).data ?? []) as TimelineRow[]
+  const note = async (): Promise<NoteState> =>
+    (await a.from('list_media').select('notes, notes_published_at, notes_edited_at, notes_hidden').eq('id', linkA).single()).data as NoteState
+  const comment = async (client: SupabaseClient) => (await timeline(client, 'comment')).find((r) => r.item_id === linkA)
+  const setActivity = async (client: SupabaseClient, id: string, value: boolean) =>
+    client.from('profiles').update({ share_activity: value }).eq('id', id)
+
+  const cleanup = async () => {
+    await a.from('list_media').update({ notes: null }).eq('id', linkA)
+    await b.from('item_likes').delete().eq('item_id', linkA)
+    await setActivity(a, aId, true)
+    await setActivity(b, bId, true)
+  }
+  beforeAll(cleanup)
+  afterAll(cleanup)
+
+  it('uma obra sem Observações não aparece; salvar o texto publica e o banco apara os espaços', async () => {
+    expect(await comment(b)).toBeUndefined()
+    const upd = await a.from('list_media').update({ notes: '  rls-test: comecei ontem  ' }).eq('id', linkA).select('notes')
+    expect(upd.error).toBeNull()
+    const state = await note()
+    expect(state).toMatchObject({ notes: 'rls-test: comecei ontem', notes_hidden: false, notes_edited_at: null })
+    expect(state.notes_published_at).not.toBeNull()
+  })
+  it('na timeline, B vê o texto de A só com o primeiro nome; A se vê como "Você"', async () => {
+    const forB = await comment(b)
+    expect(forB).toMatchObject({ event_type: 'comment', is_own: false, comment_body: 'rls-test: comecei ontem' })
+    expect(forB?.actor_name).not.toBe('Você')
+    expect(forB?.actor_name).not.toContain(' ')
+    expect(forB?.actor_name).not.toContain('@')
+    expect(await comment(a)).toMatchObject({ is_own: true, actor_name: 'Você' })
+  })
+  it('salvar de novo sem mudar o texto não altera a data de publicação', async () => {
+    const before = await note()
+    await a.from('list_media').update({ notes: 'rls-test: comecei ontem', status: 'ASSISTIR' }).eq('id', linkA)
+    const after = await note()
+    expect(after.notes_published_at).toBe(before.notes_published_at)
+    expect(after.notes_edited_at).toBeNull()
+  })
+  it('editar o texto publicado mantém a posição e marca "editado"', async () => {
+    const before = await note()
+    await a.from('list_media').update({ notes: 'rls-test: comecei ontem, gostei' }).eq('id', linkA)
+    const after = await note()
+    expect(after.notes_published_at).toBe(before.notes_published_at)
+    expect(after.notes_edited_at).not.toBeNull()
+    expect((await comment(b))?.comment_edited_at).not.toBeNull()
+  })
+  it('B não altera nem esconde a Observação de A', async () => {
+    const upd = await b.from('list_media').update({ notes: 'invadido' }).eq('id', linkA).select('id')
+    expect(upd.data ?? []).toEqual([])
+    const hide = await b.from('list_media').update({ notes_hidden: true }).eq('id', linkA).select('id')
+    expect(hide.data ?? []).toEqual([])
+    expect((await note()).notes).toBe('rls-test: comecei ontem, gostei')
+  })
+  it('o cliente não consegue forjar as datas de publicação', async () => {
+    const forgedPublished = await a.from('list_media').update({ notes_published_at: '2000-01-01T00:00:00Z' } as never).eq('id', linkA)
+    expect(forgedPublished.error).not.toBeNull()
+    const forgedEdited = await a.from('list_media').update({ notes_edited_at: null } as never).eq('id', linkA)
+    expect(forgedEdited.error).not.toBeNull()
+  })
+  it('texto acima de 1.000 caracteres é recusado, mas fixar a obra continua funcionando', async () => {
+    const tooLong = await a.from('list_media').update({ notes: 'x'.repeat(1001) }).eq('id', linkA)
+    expect(tooLong.error?.message).toContain('note_too_long')
+    const pin = await a.from('list_media').update({ is_pinned: true }).eq('id', linkA).select('id')
+    expect(pin.error).toBeNull()
+    await a.from('list_media').update({ is_pinned: false }).eq('id', linkA)
+  })
+  it('share_activity desligado esconde a Observação de A, retroativamente; A continua vendo a própria', async () => {
+    await setActivity(a, aId, false)
+    expect(await comment(b)).toBeUndefined()
+    expect(await comment(a)).toBeDefined()
+    await setActivity(a, aId, true)
+    expect(await comment(b)).toBeDefined()
+  })
+  it('"tirar da timeline" some para B e mantém o texto; salvar sem mudar o texto não volta; editar volta', async () => {
+    const hide = await a.from('list_media').update({ notes_hidden: true }).eq('id', linkA).select('id')
+    expect(hide.error).toBeNull()
+    expect(await comment(b)).toBeUndefined()
+    expect(await comment(a)).toBeUndefined()
+    expect((await note()).notes).toBe('rls-test: comecei ontem, gostei')
+
+    await a.from('list_media').update({ notes: 'rls-test: comecei ontem, gostei', status: 'ASSISTIR' }).eq('id', linkA)
+    expect(await comment(b)).toBeUndefined()
+
+    await a.from('list_media').update({ notes: 'rls-test: terminei hoje' }).eq('id', linkA)
+    const state = await note()
+    expect(state).toMatchObject({ notes_hidden: false, notes_edited_at: null })
+    expect(await comment(b)).toMatchObject({ comment_body: 'rls-test: terminei hoje' })
+  })
+  it('curtida: A (dono) e B (autor) a veem; some para A se B esconde a atividade', async () => {
+    const ins = await b.from('item_likes').insert({ item_id: linkA })
+    expect(ins.error).toBeNull()
+    const forA = (await timeline(a, 'like')).find((r) => r.item_id === linkA)
+    expect(forA).toMatchObject({ event_type: 'like', is_own: false, owner_name: 'Você' })
+    const forB = (await timeline(b, 'like')).find((r) => r.item_id === linkA)
+    expect(forB).toMatchObject({ is_own: true, actor_name: 'Você' })
+    await setActivity(b, bId, false)
+    expect((await timeline(a, 'like')).find((r) => r.item_id === linkA)).toBeUndefined()
+    expect((await timeline(b, 'like')).find((r) => r.item_id === linkA)).toBeDefined()
+    await setActivity(b, bId, true)
+  })
+  it('o filtro por tipo separa comentários de curtidas', async () => {
+    expect((await timeline(a, 'comment')).every((r) => r.event_type === 'comment')).toBe(true)
+    expect((await timeline(a, 'like')).every((r) => r.event_type === 'like')).toBe(true)
+  })
+  it('a paginação por cursor não repete itens e respeita a ordem', async () => {
+    const first = ((await a.rpc('community_timeline', { p_type: 'all', p_limit: 1 })).data ?? []) as TimelineRow[]
+    expect(first).toHaveLength(1)
+    const next = ((await a.rpc('community_timeline', {
+      p_type: 'all',
+      p_before: first[0]!.occurred_at,
+      p_before_id: first[0]!.event_id,
+      p_limit: 50,
+    })).data ?? []) as TimelineRow[]
+    expect(next.find((r) => r.event_id === first[0]!.event_id)).toBeUndefined()
+    expect(next.every((r) => r.occurred_at <= first[0]!.occurred_at)).toBe(true)
+  })
+  it('anônimo não executa a timeline', async () => {
+    expect((await newClient().rpc('community_timeline', { p_type: 'all' })).error).not.toBeNull()
+  })
+  it('apagar o texto das Observações tira da timeline e zera o estado', async () => {
+    await a.from('list_media').update({ notes: null }).eq('id', linkA)
+    expect(await comment(b)).toBeUndefined()
+    expect(await note()).toMatchObject({ notes: null, notes_published_at: null, notes_edited_at: null, notes_hidden: false })
+  })
+})
+
 describe('anônimo', () => {
   it('sem login não lê nada', async () => {
     const anon = newClient()

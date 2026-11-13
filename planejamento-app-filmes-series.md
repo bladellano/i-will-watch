@@ -839,6 +839,18 @@ publicação.
     Notificação por e-mail ao dono: pronta e **desligada** (Edge Function
     `notify-like`; ver `docs/publicacao.md`, seção 3.3).
 
+-   **Timeline da comunidade (home):** seção abaixo das listas com as
+    Observações publicadas (comentários) e as curtidas dos membros, abas
+    Todas, Comentários e Curtidas. Salvar a obra com texto nas
+    Observações publica o texto; o autor edita ou tira da timeline (o
+    texto continua nas Observações) e há o toggle de privacidade
+    `share_activity` no perfil. Colunas `notes_published_at`,
+    `notes_edited_at` e `notes_hidden` em `list_media` e RPC
+    `community_timeline` (migrações `20261113160000_community_timeline.sql`
+    e `20261113180000_timeline_from_notes.sql`, exigem `npx supabase db
+    push`). Escopo, decisões e backlog da fase 2 em
+    `docs/timeline-comunidade.md`.
+
 ## 11.1 Andamento
 
 -   Etapa 1 --- Fundação: concluída e validada.

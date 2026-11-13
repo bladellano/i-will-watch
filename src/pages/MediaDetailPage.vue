@@ -4,6 +4,9 @@ import { RouterLink, useRoute, useRouter } from 'vue-router'
 import { ArrowLeft, ExternalLink, Trash2 } from 'lucide-vue-next'
 import AppLayout from '@/layouts/AppLayout.vue'
 import ConfirmDialog from '@/components/ui/ConfirmDialog.vue'
+import { hideNoteFromTimeline } from '@/modules/timeline/services/notes.service'
+import { useTimelineStore } from '@/modules/timeline/stores/timeline.store'
+import { COMMENT_MAX_LENGTH } from '@/modules/timeline/utils/comment'
 import { fetchListItem, removeListItem, updateListItem } from '@/modules/lists/services/list-items.service'
 import type { ListItem } from '@/modules/lists/types'
 import { parseRating } from '@/modules/lists/utils/rating'
@@ -13,6 +16,7 @@ import { MEDIA_TYPE_LABELS, WATCH_STATUS_LABELS, type WatchStatus } from '@/modu
 
 const route = useRoute()
 const router = useRouter()
+const timeline = useTimelineStore()
 const listId = computed(() => String(route.params.listaId))
 const itemId = computed(() => String(route.params.vinculoId))
 
@@ -29,6 +33,15 @@ const saving = ref(false)
 const feedback = ref<{ type: 'success' | 'error'; text: string } | null>(null)
 const confirmRemove = ref(false)
 const removing = ref(false)
+const hidingNote = ref(false)
+
+/** Estado das Observações já salvas na timeline: publicada, tirada pelo dono ou ainda não publicada. */
+const noteState = computed<'visible' | 'hidden' | 'none'>(() => {
+  const current = item.value
+  if (!current?.notes) return 'none'
+  if (current.notes_hidden) return 'hidden'
+  return current.notes_published_at ? 'visible' : 'none'
+})
 
 const tmdbUrl = computed(() =>
   item.value ? `https://www.themoviedb.org/${item.value.media.media_type}/${item.value.media.tmdb_id}` : '',
@@ -95,14 +108,33 @@ async function onSave() {
       notes: notes.value.trim() || null,
       watched_at: watchedAt,
     }
-    await updateListItem(item.value.id, patch)
-    item.value = { ...item.value, ...patch }
+    const saved = await updateListItem(item.value.id, patch)
+    item.value = { ...item.value, ...patch, ...saved }
     fillForm(item.value)
-    feedback.value = { type: 'success', text: 'Alterações salvas.' }
+    timeline.invalidate()
+    feedback.value = {
+      type: 'success',
+      text: noteState.value === 'visible' ? 'Alterações salvas. As observações estão na timeline da comunidade.' : 'Alterações salvas.',
+    }
   } catch (e) {
     feedback.value = { type: 'error', text: e instanceof Error ? e.message : 'Erro inesperado.' }
   } finally {
     saving.value = false
+  }
+}
+
+async function onHideNote() {
+  if (!item.value || hidingNote.value) return
+  hidingNote.value = true
+  feedback.value = null
+  try {
+    await hideNoteFromTimeline(item.value.id)
+    item.value = { ...item.value, notes_hidden: true }
+    timeline.invalidate()
+  } catch (e) {
+    feedback.value = { type: 'error', text: e instanceof Error ? e.message : 'Erro inesperado.' }
+  } finally {
+    hidingNote.value = false
   }
 }
 
@@ -200,7 +232,35 @@ async function onRemove() {
         </div>
         <div>
           <label for="notes" class="mb-1 block text-sm text-slate-300">Observações</label>
-          <textarea id="notes" v-model="notes" rows="4" class="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2" />
+          <textarea
+            id="notes"
+            v-model="notes"
+            rows="4"
+            :maxlength="COMMENT_MAX_LENGTH"
+            aria-describedby="notes-help"
+            class="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2"
+          />
+          <div class="mt-1 flex flex-wrap items-start justify-between gap-2">
+            <p id="notes-help" class="text-xs text-slate-400">
+              Ao salvar, este texto aparece na timeline da comunidade. Para esconder sua atividade, ajuste o
+              <RouterLink :to="{ name: 'profile' }" class="underline underline-offset-2 hover:text-slate-200">perfil</RouterLink>.
+            </p>
+            <span class="text-xs tabular-nums text-slate-400">{{ notes.trim().length }}/{{ COMMENT_MAX_LENGTH }}</span>
+          </div>
+          <p v-if="noteState === 'visible'" class="mt-1 flex flex-wrap items-center gap-2 text-xs text-emerald-400">
+            Publicado na timeline.
+            <button
+              type="button"
+              :disabled="hidingNote"
+              class="text-slate-300 underline underline-offset-2 hover:text-slate-100 disabled:opacity-50"
+              @click="onHideNote"
+            >
+              {{ hidingNote ? 'Aguarde…' : 'Tirar da timeline' }}
+            </button>
+          </p>
+          <p v-else-if="noteState === 'hidden'" class="mt-1 text-xs text-slate-400">
+            Fora da timeline. Edite o texto e salve para publicá-lo de novo.
+          </p>
         </div>
         <p v-if="feedback" :role="feedback.type === 'error' ? 'alert' : 'status'" class="text-sm" :class="feedback.type === 'error' ? 'text-red-400' : 'text-emerald-400'">
           {{ feedback.text }}

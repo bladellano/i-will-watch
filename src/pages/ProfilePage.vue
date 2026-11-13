@@ -22,7 +22,7 @@ onMounted(async () => {
   await profile.load(id, true)
   name.value = profile.name ?? ''
   try {
-    await profile.loadShareLists(id)
+    await Promise.all([profile.loadShareLists(id), profile.loadShareActivity(id)])
   } catch (e) {
     sharingFeedback.value = { type: 'error', text: e instanceof Error ? e.message : 'Erro inesperado.' }
   }
@@ -41,6 +41,29 @@ async function onSubmit() {
     feedback.value = { type: 'error', text: e instanceof Error ? e.message : 'Erro inesperado.' }
   } finally {
     saving.value = false
+  }
+}
+
+async function onToggleActivity(event: Event) {
+  const id = auth.user?.id
+  if (!id) return
+  const input = event.target as HTMLInputElement
+  const next = input.checked
+  sharingSaving.value = true
+  sharingFeedback.value = null
+  try {
+    await profile.saveShareActivity(id, next)
+    sharingFeedback.value = {
+      type: 'success',
+      text: next
+        ? 'Suas observações e curtidas agora aparecem na timeline da comunidade.'
+        : 'Suas observações e curtidas não aparecem mais na timeline da comunidade.',
+    }
+  } catch (e) {
+    input.checked = !next
+    sharingFeedback.value = { type: 'error', text: e instanceof Error ? e.message : 'Erro inesperado.' }
+  } finally {
+    sharingSaving.value = false
   }
 }
 
@@ -124,6 +147,22 @@ async function onToggleSharing(event: Event) {
           Mostrar minhas listas para outros membros
           <span class="block text-xs text-slate-400">
             Os outros membros veem o nome e as obras das suas listas, sem notas nem avaliações.
+          </span>
+        </span>
+      </label>
+      <label class="mt-4 flex items-start gap-3 text-sm text-slate-300">
+        <input
+          type="checkbox"
+          role="switch"
+          class="mt-1 size-4 accent-indigo-500"
+          :checked="profile.shareActivity"
+          :disabled="sharingSaving"
+          @change="onToggleActivity"
+        />
+        <span>
+          Mostrar minha atividade na comunidade
+          <span class="block text-xs text-slate-400">
+            Suas observações publicadas e suas curtidas aparecem na timeline da home. Ao desligar, tudo some para os outros membros, sem apagar nada.
           </span>
         </span>
       </label>

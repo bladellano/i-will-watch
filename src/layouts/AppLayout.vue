@@ -6,6 +6,7 @@ import { useActivityStore } from '@/modules/activity/stores/activity.store'
 import RecentAdditionsWidget from '@/modules/activity/components/RecentAdditionsWidget.vue'
 import RecentMembersWidget from '@/modules/members/components/RecentMembersWidget.vue'
 import { useRecentMembersStore } from '@/modules/members/stores/recent-members.store'
+import { useTimelineStore } from '@/modules/timeline/stores/timeline.store'
 import { useProfileStore } from '@/modules/profile/stores/profile.store'
 import { displayName } from '@/modules/profile/utils/name'
 import { useAuthStore } from '@/modules/auth/stores/auth.store'
@@ -16,6 +17,7 @@ const router = useRouter()
 const profile = useProfileStore()
 const activity = useActivityStore()
 const recentMembers = useRecentMembersStore()
+const timeline = useTimelineStore()
 const shownName = computed(() => displayName(profile.name, auth.user?.email))
 
 onMounted(() => {
@@ -27,6 +29,7 @@ async function onSignOut() {
   profile.reset()
   activity.reset()
   recentMembers.reset()
+  timeline.reset()
   await router.push({ name: 'login' })
 }
 </script>

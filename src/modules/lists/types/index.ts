@@ -38,8 +38,17 @@ export interface ListItem {
   added_at: string
   watched_at: string | null
   is_pinned: boolean
+  /** Quando as Observações entraram na timeline (mantido pelo banco). Nulo: nunca publicadas. */
+  notes_published_at: string | null
+  /** Quando o texto publicado foi editado (mantido pelo banco). */
+  notes_edited_at: string | null
+  /** Tirada da timeline pelo dono; o texto continua nas Observações. */
+  notes_hidden: boolean
   media: ListItemMedia
 }
+
+/** Campos de publicação que o banco recalcula a cada salvamento. */
+export type ListItemNoteFields = Pick<ListItem, 'notes' | 'notes_published_at' | 'notes_edited_at' | 'notes_hidden'>
 
 export interface ListItemPatch {
   status: WatchStatus

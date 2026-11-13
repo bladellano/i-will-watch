@@ -5,7 +5,16 @@ const fetchProfileName = vi.fn()
 const updateProfileName = vi.fn()
 const fetchShareLists = vi.fn()
 const updateShareLists = vi.fn()
-vi.mock('../../services/profile.service', () => ({ fetchProfileName, updateProfileName, fetchShareLists, updateShareLists }))
+const fetchShareActivity = vi.fn()
+const updateShareActivity = vi.fn()
+vi.mock('../../services/profile.service', () => ({
+  fetchProfileName,
+  updateProfileName,
+  fetchShareLists,
+  updateShareLists,
+  fetchShareActivity,
+  updateShareActivity,
+}))
 
 const { useProfileStore } = await import('../profile.store')
 
@@ -13,6 +22,8 @@ beforeEach(() => {
   setActivePinia(createPinia())
   fetchProfileName.mockReset()
   updateProfileName.mockReset()
+  fetchShareActivity.mockReset()
+  updateShareActivity.mockReset()
 })
 
 describe('profile store', () => {
@@ -87,5 +98,32 @@ describe('compartilhamento de listas', () => {
     const store = useProfileStore()
     await expect(store.saveShareLists('u1', false)).rejects.toThrow()
     expect(store.shareLists).toBe(true)
+  })
+  describe('atividade na comunidade', () => {
+    it('começa ligada, como o padrão do banco', () => {
+      expect(useProfileStore().shareActivity).toBe(true)
+    })
+
+    it('carrega a preferência salva, inclusive desligada', async () => {
+      fetchShareActivity.mockResolvedValue(false)
+      const store = useProfileStore()
+      await store.loadShareActivity('u1')
+      expect(store.shareActivity).toBe(false)
+    })
+
+    it('salva a preferência', async () => {
+      updateShareActivity.mockResolvedValue(undefined)
+      const store = useProfileStore()
+      await store.saveShareActivity('u1', false)
+      expect(updateShareActivity).toHaveBeenCalledWith('u1', false)
+      expect(store.shareActivity).toBe(false)
+    })
+
+    it('mantém o valor anterior se o servidor recusar', async () => {
+      updateShareActivity.mockRejectedValue(new Error('Não foi possível salvar sua preferência de atividade.'))
+      const store = useProfileStore()
+      await expect(store.saveShareActivity('u1', false)).rejects.toThrow()
+      expect(store.shareActivity).toBe(true)
+    })
   })
 })

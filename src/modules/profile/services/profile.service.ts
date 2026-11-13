@@ -22,3 +22,14 @@ export async function updateShareLists(userId: string, share: boolean): Promise<
   const { data, error } = await supabase.from('profiles').update({ share_lists: share }).eq('id', userId).select('id')
   if (error || !data || data.length === 0) throw requestError('Não foi possível salvar sua preferência de compartilhamento.')
 }
+
+export async function fetchShareActivity(userId: string): Promise<boolean> {
+  const { data, error } = await supabase.from('profiles').select('share_activity').eq('id', userId).maybeSingle()
+  if (error) throw requestError('Não foi possível carregar sua preferência de atividade.')
+  return data?.share_activity ?? false
+}
+
+export async function updateShareActivity(userId: string, share: boolean): Promise<void> {
+  const { data, error } = await supabase.from('profiles').update({ share_activity: share }).eq('id', userId).select('id')
+  if (error || !data || data.length === 0) throw requestError('Não foi possível salvar sua preferência de atividade.')
+}

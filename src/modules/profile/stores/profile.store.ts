@@ -1,6 +1,13 @@
 import { ref } from 'vue'
 import { defineStore } from 'pinia'
-import { fetchProfileName, fetchShareLists, updateProfileName, updateShareLists } from '../services/profile.service'
+import {
+  fetchProfileName,
+  fetchShareActivity,
+  fetchShareLists,
+  updateProfileName,
+  updateShareActivity,
+  updateShareLists,
+} from '../services/profile.service'
 import { isValidName, normalizeName } from '../utils/name'
 
 export const useProfileStore = defineStore('profile', () => {
@@ -9,6 +16,8 @@ export const useProfileStore = defineStore('profile', () => {
   const error = ref('')
   /** Se as listas do membro ficam visíveis para os outros membros (modal do widget). Padrão ligado, como no banco. */
   const shareLists = ref(true)
+  /** Se os comentários e curtidas do membro aparecem na timeline da comunidade. Padrão ligado, como no banco. */
+  const shareActivity = ref(true)
 
   async function load(userId: string, force = false) {
     if (!force && loadedFor.value === userId) return
@@ -39,12 +48,35 @@ export const useProfileStore = defineStore('profile', () => {
     shareLists.value = share
   }
 
+  async function loadShareActivity(userId: string) {
+    shareActivity.value = await fetchShareActivity(userId)
+  }
+
+  /** Em caso de falha o valor anterior é mantido e o erro sobe para a tela. */
+  async function saveShareActivity(userId: string, share: boolean) {
+    await updateShareActivity(userId, share)
+    shareActivity.value = share
+  }
+
   function reset() {
     name.value = null
     loadedFor.value = null
     error.value = ''
     shareLists.value = true
+    shareActivity.value = true
   }
 
-  return { name, error, shareLists, load, saveName, loadShareLists, saveShareLists, reset }
+  return {
+    name,
+    error,
+    shareLists,
+    shareActivity,
+    load,
+    saveName,
+    loadShareLists,
+    saveShareLists,
+    loadShareActivity,
+    saveShareActivity,
+    reset,
+  }
 })
