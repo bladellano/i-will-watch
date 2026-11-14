@@ -1,13 +1,15 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { RouterLink } from 'vue-router'
-import { Camera, FolderPlus, Pencil, Plus, Trash2 } from 'lucide-vue-next'
+import { ArrowRight, Camera, Crown, FolderPlus, Plus } from 'lucide-vue-next'
 import AppLayout from '@/layouts/AppLayout.vue'
 import ConfirmDialog from '@/components/ui/ConfirmDialog.vue'
 import CommunityTimeline from '@/modules/timeline/components/CommunityTimeline.vue'
 import RecentAdditionsWidget from '@/modules/activity/components/RecentAdditionsWidget.vue'
 import RecentMembersWidget from '@/modules/members/components/RecentMembersWidget.vue'
 import ListFormDialog from '@/modules/lists/components/ListFormDialog.vue'
+import ListActionsMenu from '@/modules/lists/components/ListActionsMenu.vue'
+import ListPosterStack from '@/modules/lists/components/ListPosterStack.vue'
 import { useListsStore } from '@/modules/lists/stores/lists.store'
 import { useCapturesStore } from '@/modules/capture/stores/captures.store'
 import { CAPTURE_STATUS_LABELS } from '@/modules/capture/types'
@@ -24,6 +26,10 @@ const formError = ref('')
 const deleting = ref<ListSummary | null>(null)
 const deleteBusy = ref(false)
 const actionError = ref('')
+
+const featured = computed(() => store.lists.find((l) => l.is_default) ?? store.lists[0] ?? null)
+const others = computed(() => store.lists.filter((l) => l.id !== featured.value?.id))
+const totalItems = computed(() => store.lists.reduce((sum, l) => sum + l.item_count, 0))
 
 onMounted(() => {
   void store.load()
@@ -74,70 +80,96 @@ async function onConfirmDelete() {
 
 <template>
   <AppLayout>
-    <div class="flex flex-wrap items-center justify-between gap-3">
-      <h2 class="text-lg font-medium">Suas listas</h2>
-      <div class="flex gap-2">
-        <button
-          type="button"
-          class="inline-flex items-center gap-1 rounded-lg border border-slate-700 px-3 py-2 text-sm hover:bg-slate-800"
-          @click="openCreate"
-        >
-          <FolderPlus class="h-4 w-4" aria-hidden="true" /> Nova lista
-        </button>
-        <RouterLink
-          :to="{ name: 'capture-new' }"
-          class="inline-flex items-center gap-1 rounded-lg border border-slate-700 px-3 py-2 text-sm hover:bg-slate-800"
-        >
-          <Camera class="h-4 w-4" aria-hidden="true" /> Nova captura
-        </RouterLink>
-        <RouterLink
-          :to="{ name: 'add-media' }"
-          class="inline-flex items-center gap-1 rounded-lg bg-indigo-500 px-3 py-2 text-sm font-medium text-white hover:bg-indigo-400"
-        >
-          <Plus class="h-4 w-4" aria-hidden="true" /> Adicionar filme ou série
-        </RouterLink>
-      </div>
-    </div>
-
-    <p v-if="actionError" role="alert" class="mt-3 text-sm text-red-400">{{ actionError }}</p>
-
-    <p v-if="store.loading && store.lists.length === 0" role="status" class="mt-6 text-sm text-slate-400">Carregando listas…</p>
-    <div v-else-if="store.error" role="alert" class="mt-6 text-sm text-red-400">
-      {{ store.error }}
-      <button type="button" class="ml-2 underline" @click="store.load()">Tentar de novo</button>
-    </div>
-    <p v-else-if="store.lists.length === 0" class="mt-6 text-sm text-slate-400">Você ainda não tem listas.</p>
-
-    <ul v-else class="mt-6 grid gap-3 sm:grid-cols-2">
-      <li v-for="list in store.lists" :key="list.id" class="rounded-xl border border-slate-800 bg-slate-900/60 p-4">
-        <div class="flex items-start justify-between gap-2">
-          <RouterLink :to="{ name: 'list', params: { listaId: list.id } }" class="min-w-0 flex-1 hover:underline">
-            <h3 class="truncate font-semibold">{{ list.name }}</h3>
+    <section
+      aria-labelledby="lists-title"
+      class="rounded-2xl border border-indigo-500/60 bg-slate-900/50 p-4 shadow-[0_0_0_1px_rgba(99,102,241,0.15)] sm:p-6"
+    >
+      <header class="flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <h2 id="lists-title" class="text-2xl font-bold tracking-tight sm:text-3xl">Suas listas</h2>
+          <p class="mt-1 text-indigo-300/90">Organize suas obras por tema</p>
+          <p class="mt-1 text-sm text-slate-400">
+            {{ store.lists.length }} {{ store.lists.length === 1 ? 'lista' : 'listas' }} · {{ totalItems }}
+            {{ totalItems === 1 ? 'obra' : 'obras' }}
+          </p>
+        </div>
+        <div class="flex flex-wrap gap-2">
+          <button
+            type="button"
+            class="inline-flex items-center gap-1.5 rounded-lg border border-slate-700 px-3 py-2 text-sm hover:bg-slate-800"
+            @click="openCreate"
+          >
+            <FolderPlus class="h-4 w-4" aria-hidden="true" /> Nova lista
+          </button>
+          <RouterLink
+            :to="{ name: 'capture-new' }"
+            class="inline-flex items-center gap-1.5 rounded-lg border border-slate-700 px-3 py-2 text-sm hover:bg-slate-800"
+          >
+            <Camera class="h-4 w-4" aria-hidden="true" /> Nova captura
           </RouterLink>
-          <div class="flex shrink-0 gap-1">
-            <button
-              type="button"
-              class="rounded-md p-2.5 text-slate-400 hover:bg-slate-800 hover:text-slate-100"
-              :aria-label="`Editar lista ${list.name}`"
-              @click="openEdit(list)"
+          <RouterLink
+            :to="{ name: 'add-media' }"
+            class="inline-flex items-center gap-1.5 rounded-lg bg-indigo-500 px-3 py-2 text-sm font-medium text-white hover:bg-indigo-400"
+          >
+            <Plus class="h-4 w-4" aria-hidden="true" /> Adicionar filme ou série
+          </RouterLink>
+        </div>
+      </header>
+
+      <p v-if="actionError" role="alert" class="mt-3 text-sm text-red-400">{{ actionError }}</p>
+
+      <p v-if="store.loading && store.lists.length === 0" role="status" class="mt-6 text-sm text-slate-400">Carregando listas…</p>
+      <div v-else-if="store.error" role="alert" class="mt-6 text-sm text-red-400">
+        {{ store.error }}
+        <button type="button" class="ml-2 underline" @click="store.load()">Tentar de novo</button>
+      </div>
+      <p v-else-if="store.lists.length === 0" class="mt-6 text-sm text-slate-400">Você ainda não tem listas.</p>
+
+      <div v-else class="mt-6 space-y-3">
+        <div
+          v-if="featured"
+          class="flex flex-wrap items-center gap-4 rounded-2xl border border-indigo-500 bg-indigo-500/5 p-4 sm:gap-6 sm:p-5"
+        >
+          <RouterLink :to="{ name: 'list', params: { listaId: featured.id } }" class="flex min-w-0 flex-1 items-center gap-4 sm:gap-6">
+            <ListPosterStack :posters="featured.preview_posters" size="lg" />
+            <div class="min-w-0">
+              <h3 class="truncate text-xl font-bold sm:text-2xl">{{ featured.name }}</h3>
+              <p class="mt-1 text-indigo-300">{{ featured.item_count }} {{ featured.item_count === 1 ? 'obra' : 'obras' }}</p>
+              <p v-if="featured.is_default" class="mt-2 inline-flex items-center gap-1.5 text-sm text-indigo-200">
+                <Crown class="h-4 w-4" aria-hidden="true" /> Sua coleção principal
+              </p>
+              <p v-else-if="featured.description" class="mt-2 line-clamp-2 text-sm text-slate-400">{{ featured.description }}</p>
+            </div>
+          </RouterLink>
+          <div class="ml-auto flex items-center gap-2">
+            <RouterLink
+              :to="{ name: 'list', params: { listaId: featured.id } }"
+              class="inline-flex items-center gap-2 rounded-xl border border-indigo-400 px-5 py-2.5 font-medium text-indigo-100 hover:bg-indigo-500/20"
             >
-              <Pencil class="h-4 w-4" aria-hidden="true" />
-            </button>
-            <button
-              v-if="!list.is_default"
-              type="button"
-              class="rounded-md p-2.5 text-slate-400 hover:bg-slate-800 hover:text-red-400"
-              :aria-label="`Excluir lista ${list.name}`"
-              @click="deleting = list"
-            >
-              <Trash2 class="h-4 w-4" aria-hidden="true" />
-            </button>
+              Abrir lista <ArrowRight class="h-4 w-4" aria-hidden="true" />
+            </RouterLink>
+            <ListActionsMenu :list-name="featured.name" :can-delete="!featured.is_default" @edit="openEdit(featured)" @remove="deleting = featured" />
           </div>
         </div>
-        <p v-if="list.description" class="mt-1 line-clamp-2 text-sm text-slate-400">{{ list.description }}</p>
-        <p class="mt-2 text-sm text-slate-300">{{ list.item_count }} {{ list.item_count === 1 ? 'obra' : 'obras' }}</p>
-      </li>
-    </ul>
+
+        <ul v-if="others.length > 0" class="grid gap-3 md:grid-cols-2">
+          <li
+            v-for="list in others"
+            :key="list.id"
+            class="flex items-center gap-3 rounded-xl border border-slate-800 bg-slate-900/60 p-3 transition-colors hover:border-indigo-500/60 hover:bg-slate-800/60"
+          >
+            <RouterLink :to="{ name: 'list', params: { listaId: list.id } }" class="flex min-w-0 flex-1 items-center gap-3">
+              <ListPosterStack :posters="list.preview_posters" />
+              <div class="min-w-0">
+                <h3 class="truncate font-semibold">{{ list.name }}</h3>
+                <p class="text-sm text-slate-400">{{ list.item_count }} {{ list.item_count === 1 ? 'obra' : 'obras' }}</p>
+              </div>
+            </RouterLink>
+            <ListActionsMenu :list-name="list.name" :can-delete="!list.is_default" @edit="openEdit(list)" @remove="deleting = list" />
+          </li>
+        </ul>
+      </div>
+    </section>
 
     <section v-if="captures.items.length > 0 || captures.error" class="mt-10" aria-label="Capturas pendentes">
       <h2 class="text-lg font-medium">Capturas pendentes</h2>

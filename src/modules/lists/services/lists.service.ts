@@ -8,6 +8,7 @@ interface RawListRow {
   description: string | null
   is_default: boolean
   list_media?: { count: number }[]
+  preview?: { media: { poster_path: string | null } | null }[]
 }
 
 /** Listas do usuário autenticado (a RLS filtra por user_id). A lista default vem primeiro. */
@@ -24,9 +25,11 @@ export async function fetchLists(): Promise<UserList[]> {
 export async function fetchListSummaries(): Promise<ListSummary[]> {
   const { data, error } = await supabase
     .from('lists')
-    .select('id, name, description, is_default, list_media(count)')
+    .select('id, name, description, is_default, list_media(count), preview:list_media(added_at, media:media_id(poster_path))')
     .order('is_default', { ascending: false })
     .order('created_at', { ascending: true })
+    .order('added_at', { referencedTable: 'preview', ascending: false })
+    .limit(3, { referencedTable: 'preview' })
   if (error) throw requestError('Não foi possível carregar suas listas.')
   return ((data ?? []) as unknown as RawListRow[]).map((row) => ({
     id: row.id,
@@ -34,6 +37,7 @@ export async function fetchListSummaries(): Promise<ListSummary[]> {
     description: row.description,
     is_default: row.is_default,
     item_count: row.list_media?.[0]?.count ?? 0,
+    preview_posters: (row.preview ?? []).map((p) => p.media?.poster_path).filter((p): p is string => !!p),
   }))
 }
 

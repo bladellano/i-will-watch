@@ -9,6 +9,8 @@ export interface UserList {
 export interface ListSummary extends UserList {
   description: string | null
   item_count: number
+  /** Até 3 pôsteres (mais recentes) para a prévia visual da lista. */
+  preview_posters: string[]
 }
 
 export interface ListDetails extends UserList {
