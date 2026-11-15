@@ -507,6 +507,67 @@ describe('Observações publicadas e timeline da comunidade', () => {
   })
 })
 
+describe('evento "começou a assistir"', () => {
+  const timeline = async (client: SupabaseClient) =>
+    ((await client.rpc('community_timeline', { p_type: 'watching', p_limit: 50 })).data ?? []) as Array<{
+      event_type: string
+      item_id: string | null
+      actor_name: string
+      is_own: boolean
+    }>
+  const found = async (client: SupabaseClient) => (await timeline(client)).find((r) => r.item_id === linkA)
+  const setActivity = async (client: SupabaseClient, id: string, value: boolean) =>
+    client.from('profiles').update({ share_activity: value }).eq('id', id)
+  const reset = async () => {
+    await a.from('list_media').update({ status: 'ASSISTIR', watching_hidden: false }).eq('id', linkA)
+    await setActivity(a, aId, true)
+  }
+  beforeAll(reset)
+  afterAll(reset)
+
+  it('mudar para ASSISTINDO publica o evento; o cliente não escreve a data', async () => {
+    const forged = await a.from('list_media').update({ status: 'ASSISTINDO', watching_started_at: '2000-01-01' } as never).eq('id', linkA)
+    expect(forged.error).not.toBeNull()
+    const upd = await a.from('list_media').update({ status: 'ASSISTINDO' }).eq('id', linkA).select('watching_started_at')
+    expect(upd.error).toBeNull()
+    expect(upd.data?.[0]?.watching_started_at).not.toBeNull()
+  })
+  it('B vê o evento de A só com o primeiro nome; A se vê como "Você"', async () => {
+    const forB = await found(b)
+    expect(forB).toMatchObject({ event_type: 'watching', is_own: false })
+    expect(forB?.actor_name).not.toContain(' ')
+    expect(await found(a)).toMatchObject({ is_own: true, actor_name: 'Você' })
+  })
+  it('salvar a obra de novo em ASSISTINDO não cria evento novo', async () => {
+    const before = (await a.from('list_media').select('watching_started_at').eq('id', linkA).single()).data?.watching_started_at
+    await a.from('list_media').update({ status: 'ASSISTINDO', personal_rating: 8 }).eq('id', linkA)
+    const after = (await a.from('list_media').select('watching_started_at').eq('id', linkA).single()).data?.watching_started_at
+    expect(after).toBe(before)
+  })
+  it('share_activity desligado esconde o evento de B; A continua vendo', async () => {
+    await setActivity(a, aId, false)
+    expect(await found(b)).toBeUndefined()
+    expect(await found(a)).toBeDefined()
+    await setActivity(a, aId, true)
+  })
+  it('A tira da timeline: some para B; B não consegue esconder o evento de A', async () => {
+    const byB = await b.from('list_media').update({ watching_hidden: true }).eq('id', linkA).select('id')
+    expect(byB.data ?? []).toEqual([])
+    const hide = await a.from('list_media').update({ watching_hidden: true }).eq('id', linkA).select('id')
+    expect(hide.error).toBeNull()
+    expect(await found(b)).toBeUndefined()
+    expect(await found(a)).toBeUndefined()
+  })
+  it('voltar a ASSISTIR e depois a ASSISTINDO publica de novo', async () => {
+    await a.from('list_media').update({ status: 'ASSISTIR' }).eq('id', linkA)
+    await a.from('list_media').update({ status: 'ASSISTINDO' }).eq('id', linkA)
+    expect(await found(b)).toBeDefined()
+  })
+  it('anônimo não lê o evento', async () => {
+    expect((await newClient().rpc('community_timeline', { p_type: 'watching' })).error).not.toBeNull()
+  })
+})
+
 describe('anônimo', () => {
   it('sem login não lê nada', async () => {
     const anon = newClient()

@@ -102,6 +102,38 @@ Reaproveita o SMTP e o `NOTIFY_WEBHOOK_SECRET` da seção 3.2. Sem os passos aba
    ```
 Diagnóstico: `select * from net._http_response order by created desc limit 5;` e **Edge Functions → notify-like → Logs**. Para desligar: apague os dois segredos do Vault.
 
+### 3.4 E-mails para membros (lembretes)
+
+Envia e-mails aos membros confirmados, pelo comando `npm run email`. O tipo inicial é `lembrete`: relembra o membro do app e dos três objetivos principais, com um convite para voltar. Novos tipos entram em `supabase/functions/_shared/email-templates.ts`. Os textos dos objetivos ficam em `APP_GOALS`, no mesmo arquivo.
+
+Configuração, uma única vez (depois da seção 3.2, que já configura o SMTP):
+
+1. Gere um segredo: `openssl rand -hex 32`
+2. Defina os secrets (o `APP_URL` entra como link no e-mail):
+   ```
+   npx supabase secrets set MAIL_ADMIN_SECRET=o-segredo-gerado APP_URL=https://seu-dominio
+   ```
+3. Publique a função: `npx supabase functions deploy send-member-email`
+
+Uso, no terminal local:
+
+- Simulação (padrão, não envia; mostra quantos membros receberiam):
+  ```
+  MAIL_ADMIN_SECRET=o-segredo-gerado VITE_SUPABASE_URL=https://SEU_PROJETO.supabase.co npm run email -- --tipo lembrete --para todos
+  ```
+- Envio real para todos os membros confirmados (pede que você digite `ENVIAR`):
+  ```
+  MAIL_ADMIN_SECRET=o-segredo-gerado VITE_SUPABASE_URL=https://SEU_PROJETO.supabase.co npm run email -- --tipo lembrete --para todos --enviar
+  ```
+- Envio para um só membro: troque `--para todos` por `--para pessoa@exemplo.com` (só envia a endereços de membros confirmados).
+
+Regras e limites:
+
+- Cada execução atende no máximo 200 destinatários. Contas gratuitas do Gmail têm limite diário de envio (cerca de 500 mensagens por dia), então acompanhe o volume.
+- A resposta mostra apenas contagens; os e-mails dos membros não aparecem no terminal nem nos logs.
+- Nunca coloque `MAIL_ADMIN_SECRET` em variáveis `VITE_` nem no código.
+- Antes de enviar tipos novos a todos, use a simulação e envie primeiro a um e-mail de teste.
+
 ## 4. Verificação pós-publicação
 
 1. Abra a URL em HTTPS, cadastre-se (ou entre) e confirme o e-mail.

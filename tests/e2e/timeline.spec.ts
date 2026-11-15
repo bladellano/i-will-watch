@@ -35,6 +35,11 @@ test('Observações salvas aparecem na timeline da home; editar e tirar da timel
   await expect(page.getByRole('status')).toContainText('As observações estão na timeline da comunidade')
   await expect(page.getByText('Publicado na timeline.')).toBeVisible()
 
+  // Marcar como assistindo publica o evento "começou a assistir", sem mexer no texto das Observações.
+  await page.getByLabel('Status').selectOption('ASSISTINDO')
+  await page.getByRole('button', { name: 'Salvar alterações' }).click()
+  await expect(page.getByRole('status')).toContainText('começou a assistir')
+
   // Aparece na timeline da home.
   await page.goto('/')
   await expect(page.getByRole('heading', { name: 'Timeline da comunidade' })).toBeVisible()
@@ -42,6 +47,9 @@ test('Observações salvas aparecem na timeline da home; editar e tirar da timel
   await expect(card).toHaveCount(1)
   await expect(card).toContainText('Você')
   await expect(card).toContainText('comentou em')
+  const watchingCard = page.getByRole('listitem').filter({ hasText: 'começou a assistir' }).filter({ hasText: 'Matrix' })
+  await expect(watchingCard).toHaveCount(1)
+  await expect(watchingCard).toContainText('Começou a assistir')
 
   // Clicar na capa abre o modal de detalhes (como em "Últimas obras adicionadas"); Esc fecha.
   await card.getByRole('button', { name: /^Ver detalhes de / }).click()

@@ -7,6 +7,7 @@ import { useTimelineStore } from '../stores/timeline.store'
 import type { TimelineFilter } from '../types'
 import TimelineCommentCard from './TimelineCommentCard.vue'
 import TimelineLikeCard from './TimelineLikeCard.vue'
+import TimelineWatchingCard from './TimelineWatchingCard.vue'
 
 const store = useTimelineStore()
 const headingId = useId()
@@ -78,6 +79,7 @@ onMounted(() => {
       <ol class="divide-y divide-slate-800/70" :aria-busy="store.loading">
         <template v-for="event in store.items" :key="event.event_id">
           <TimelineCommentCard v-if="event.event_type === 'comment'" :event="event" />
+          <TimelineWatchingCard v-else-if="event.event_type === 'watching'" :event="event" />
           <TimelineLikeCard v-else :event="event" />
         </template>
       </ol>

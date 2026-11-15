@@ -13,7 +13,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:rls": "vitest run --config vitest.rls.config.ts --mode test",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "email": "node scripts/send-member-email.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.119.0",

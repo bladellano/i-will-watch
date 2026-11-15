@@ -3,7 +3,8 @@ import type { MediaType } from '@/modules/media/types'
 /** Abas da timeline. "Atividades" (adicionou à lista, começou/terminou) entra na fase 2. */
 export type TimelineFilter = 'all' | 'comment' | 'like'
 
-export type TimelineEventType = 'comment' | 'like'
+/** 'watching': a obra passou a ASSISTINDO ("começou a assistir"). */
+export type TimelineEventType = 'comment' | 'like' | 'watching'
 
 /** Item da timeline devolvido por `community_timeline`: só primeiro nome e dados públicos do catálogo. */
 export interface TimelineEvent {

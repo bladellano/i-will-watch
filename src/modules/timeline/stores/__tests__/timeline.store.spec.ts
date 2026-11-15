@@ -6,6 +6,8 @@ vi.mock('../../services/timeline.service', () => ({ fetchTimeline, TIMELINE_PAGE
 const updateNote = vi.fn()
 const hideNoteFromTimeline = vi.fn()
 vi.mock('../../services/notes.service', () => ({ updateNote, hideNoteFromTimeline }))
+const hideWatchingFromTimeline = vi.fn()
+vi.mock('../../services/watching.service', () => ({ hideWatchingFromTimeline }))
 const setLike = vi.fn()
 vi.mock('@/modules/likes/services/likes.service', () => ({ setLike }))
 const fetchMediaDetails = vi.fn()
@@ -148,6 +150,30 @@ describe('timeline store', () => {
       await store.hideNote('item-1')
       // a curtida na mesma adição (item-1) permanece
       expect(store.items.map((i) => i.event_id)).toEqual(['2', 'x:y'])
+    })
+  })
+
+  describe('evento "começou a assistir"', () => {
+    const watching = (id: string, over = {}) =>
+      ev(id, { event_type: 'watching', comment_body: null, comment_edited_at: null, item_id: `item-${id}`, is_own: true, ...over })
+
+    it('tirar da timeline remove só o evento daquela adição', async () => {
+      fetchTimeline.mockResolvedValue([watching('w1'), ev('2')])
+      const store = useTimelineStore()
+      await store.load()
+      hideWatchingFromTimeline.mockResolvedValueOnce(undefined)
+      await store.hideWatching('item-w1')
+      expect(hideWatchingFromTimeline).toHaveBeenCalledWith('item-w1')
+      expect(store.items.map((i) => i.event_id)).toEqual(['2'])
+    })
+
+    it('se o servidor recusar, mantém o card e repassa o erro', async () => {
+      fetchTimeline.mockResolvedValue([watching('w1')])
+      const store = useTimelineStore()
+      await store.load()
+      hideWatchingFromTimeline.mockRejectedValueOnce(new Error('Não foi possível tirar o evento da timeline.'))
+      await expect(store.hideWatching('item-w1')).rejects.toThrow(/tirar/)
+      expect(store.items).toHaveLength(1)
     })
   })
 

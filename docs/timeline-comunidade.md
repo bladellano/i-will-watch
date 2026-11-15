@@ -7,9 +7,14 @@ Este documento registra o escopo do MVP, as decisões tomadas e o backlog da **f
 
 ## 1. Escopo do MVP
 
-- **Dois tipos de atividade:** comentários e curtidas em adições de obras.
+- **Três tipos de atividade:** comentários, curtidas em adições de obras e "começou a assistir".
 - **Comentário = campo "Observações".** Ao salvar a obra com texto nas Observações, o texto aparece na timeline
   (um registro por obra do membro). Não existe um segundo lugar para comentar.
+- **Começou a assistir:** quando a obra passa a Assistindo (vindo de qualquer outro status), a timeline mostra
+  "Fulano começou a assistir X", com selo "Começou a assistir" e faixa âmbar. Aparece em Todas (sem aba própria).
+  Repetir a mudança com a obra já em Assistindo não gera evento novo. Sair de Assistindo mantém o evento como
+  histórico. O autor pode tirar o evento da timeline; a obra continua em Assistindo na lista. Mudar para
+  Assistindo de novo publica de novo.
 - **Abas:** Todas, Comentários e Curtidas (a aba "Atividades" entra na fase 2).
 - **Editar:** o autor edita pelo menu "⋯" do card (edição inline) ou direto nas Observações. O card continua no
   mesmo lugar e ganha "(editado)", sem histórico de versões.
@@ -66,7 +71,10 @@ Migrações (exigem `npx supabase db push`):
     nota antiga e nunca publicada é publicada no próximo salvamento; texto vazio zera o estado;
   - grant de update por coluna em `list_media` (`status`, `personal_rating`, `notes`, `watched_at`, `is_pinned`,
     `notes_hidden`), para que as datas de publicação não possam ser forjadas pelo cliente;
-  - `community_timeline(p_type, p_before, p_before_id, p_limit)`: filtro `all | comment | like`, cursor por
+  - `20261115120000_timeline_watching.sql`: `list_media.watching_started_at` (mantida pelo banco pelo gatilho
+  `list_media_watching_publish`, em `before insert or update of status`) e `watching_hidden` (o dono pode escrever).
+  A RPC passa a ter o tipo `watching`.
+- `community_timeline(p_type, p_before, p_before_id, p_limit)`: filtro `all | comment | like | watching`, cursor por
     `(occurred_at, event_id)`, limite máximo de 50.
 - Fixar ou desfixar uma obra não mexe na publicação (o gatilho só dispara quando `notes` faz parte do UPDATE).
 
@@ -90,10 +98,10 @@ Migrações (exigem `npx supabase db push`):
 
 Itens combinados para depois, em ordem aproximada de valor:
 
-- **Aba "Atividades":** "adicionou X à lista", "começou a assistir" e "terminou de assistir". Cada tipo precisa
+- **Aba "Atividades":** "adicionou X à lista" e "terminou de assistir". Cada tipo precisa
   de evento, card e filtro próprios.
-- **Status `ASSISTINDO` e data de início estruturada.** Hoje o "comecei ontem" vive só no texto. O README cita
-  `ASSISTINDO`, mas ele não existe no código.
+- **Data de início na página da obra.** O status ASSISTINDO já existe e gera o evento com a data do momento da mudança,
+  mas o usuário ainda não informa uma data anterior (ex.: "comecei ontem"); hoje isso vive só no texto das Observações.
 - **Responder e curtir comentário** (aparecem no mockup): exigem threads, tabela de curtidas de comentário,
   notificações e, provavelmente, moderação.
 - **Mais de um comentário por obra** (histórico de impressões) e **conversa por obra**, com os comentários de

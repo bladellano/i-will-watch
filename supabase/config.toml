@@ -443,3 +443,7 @@ verify_jwt = false
 [functions.notify-like]
 # Chamada pelo banco (pg_net): autenticação por segredo compartilhado (x-webhook-secret).
 verify_jwt = false
+
+[functions.send-member-email]
+# Chamada pelo administrador (npm run email): autenticação por segredo (x-admin-secret).
+verify_jwt = false

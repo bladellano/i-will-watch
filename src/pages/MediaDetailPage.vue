@@ -100,6 +100,7 @@ async function onSave() {
     watchedAt = dateInputToIso(watchedDate.value) ?? new Date().toISOString()
   }
 
+  const startedWatching = status.value === 'ASSISTINDO' && item.value.status !== 'ASSISTINDO'
   saving.value = true
   try {
     const patch = {
@@ -112,10 +113,10 @@ async function onSave() {
     item.value = { ...item.value, ...patch, ...saved }
     fillForm(item.value)
     timeline.invalidate()
-    feedback.value = {
-      type: 'success',
-      text: noteState.value === 'visible' ? 'Alterações salvas. As observações estão na timeline da comunidade.' : 'Alterações salvas.',
-    }
+    const parts = ['Alterações salvas.']
+    if (startedWatching) parts.push('A obra aparece na timeline como “começou a assistir”.')
+    if (noteState.value === 'visible') parts.push('As observações estão na timeline da comunidade.')
+    feedback.value = { type: 'success', text: parts.join(' ') }
   } catch (e) {
     feedback.value = { type: 'error', text: e instanceof Error ? e.message : 'Erro inesperado.' }
   } finally {

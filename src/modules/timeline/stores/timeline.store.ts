@@ -4,6 +4,7 @@ import { useActivityStore } from '@/modules/activity/stores/activity.store'
 import { setLike } from '@/modules/likes/services/likes.service'
 import { fetchMediaDetails, type MediaDetails } from '@/modules/media/services/media.service'
 import { hideNoteFromTimeline, updateNote } from '../services/notes.service'
+import { hideWatchingFromTimeline } from '../services/watching.service'
 import { fetchTimeline, TIMELINE_PAGE_SIZE } from '../services/timeline.service'
 import type { TimelineEvent, TimelineFilter } from '../types'
 
@@ -117,6 +118,12 @@ export const useTimelineStore = defineStore('timeline', () => {
     }
   }
 
+  /** Tira o próprio evento "começou a assistir" da timeline e remove o card. */
+  async function hideWatching(itemId: string): Promise<void> {
+    await hideWatchingFromTimeline(itemId)
+    items.value = items.value.filter((i) => !(i.event_type === 'watching' && i.item_id === itemId))
+  }
+
   /** Abre o modal com sinopse, nota TMDB e gêneros da obra. Busca no catálogo uma vez por obra. */
   async function openDetails(event: TimelineEvent): Promise<void> {
     if (detailsBusy.value) return
@@ -188,6 +195,7 @@ export const useTimelineStore = defineStore('timeline', () => {
     loadMore,
     saveNote,
     hideNote,
+    hideWatching,
     undoLike,
     openDetails,
     closeDetails,
