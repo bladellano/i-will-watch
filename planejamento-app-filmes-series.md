@@ -58,8 +58,8 @@ qualquer trecho anterior que pareça divergir.
     `default`, cujo nome e descrição são editáveis. Não existem listas
     padrão fixas (os nomes "Quero assistir", "Assistindo" etc. do
     rascunho inicial eram apenas exemplos).
--   **Status da obra:** três valores iniciais: `ASSISTIR`, `ARQUIVADO` e
-    `ASSISTIDO`. O status é independente das listas.
+-   **Status da obra:** quatro valores iniciais: `ASSISTIR`, `ASSISTINDO`,
+    `ARQUIVADO` e `ASSISTIDO`. O status é independente das listas.
 -   **Tailwind CSS:** adotado, junto com `lucide-vue-next` para ícones.
 -   **Estrutura de pastas:** conforme a seção 9, criando apenas as
     pastas exigidas pela etapa em andamento.
@@ -272,7 +272,7 @@ pesquisar manualmente no TMDB.
 
 **Status**
 
--   Valores iniciais: `ASSISTIR`, `ARQUIVADO`, `ASSISTIDO`.
+-   Valores iniciais: `ASSISTIR`, `ASSISTINDO`, `ARQUIVADO`, `ASSISTIDO`.
 -   Status padrão ao adicionar uma obra: `ASSISTIR`.
 -   O status é armazenado em cada vínculo obra-lista (`list_media`).
 -   Ao marcar uma obra como `ASSISTIDO`, `watched_at` é preenchido com a
@@ -375,7 +375,7 @@ Relaciona obras às listas dos usuários.
 -   `id`: UUID, chave primária.
 -   `list_id`: referência a `lists`.
 -   `media_id`: referência a `media`.
--   `status`: `ASSISTIR` (padrão), `ARQUIVADO` ou `ASSISTIDO`, com
+-   `status`: `ASSISTIR` (padrão), `ASSISTINDO`, `ARQUIVADO` ou `ASSISTIDO`, com
     `CHECK` na coluna (ou enum do Postgres).
 -   `personal_rating`: nota pessoal opcional, inteiro de 1 a 10
     (`CHECK`).
@@ -785,9 +785,9 @@ publicação.
 
 -   **Login:** texto "Para que serve este app" (objetivo do produto)
     exibido abaixo do formulário de login.
--   **Cores do status:** Para assistir = verde, Assistido = azul,
+-   **Cores do status:** Para assistir = verde, Assistindo = âmbar, Assistido = azul,
     Arquivado = cinza (`src/modules/media/utils/status-style.ts`).
--   **Ordenação da lista:** sempre Para assistir → Assistido →
+-   **Ordenação da lista:** sempre Para assistir → Assistindo → Assistido →
     Arquivado (`sortListItems`); dentro de cada status, itens fixados
     primeiro e o restante na ordem de inclusão mais recente.
 -   **Fixar itens:** coluna `list_media.is_pinned` (migração

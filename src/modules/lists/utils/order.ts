@@ -2,10 +2,10 @@ import type { WatchStatus } from '@/modules/media/types'
 import type { ListItem } from '../types'
 
 /** Sequência fixa das seções da lista. */
-export const STATUS_ORDER: readonly WatchStatus[] = ['ASSISTIR', 'ASSISTIDO', 'ARQUIVADO']
+export const STATUS_ORDER: readonly WatchStatus[] = ['ASSISTIR', 'ASSISTINDO', 'ASSISTIDO', 'ARQUIVADO']
 
 /**
- * Ordena por status (para assistir, assistidos, arquivados). Dentro de cada status,
+ * Ordena por status (para assistir, assistindo, assistidos, arquivados). Dentro de cada status,
  * os itens fixados aparecem primeiro; o restante mantém a ordem recebida.
  * Não altera o array original.
  */

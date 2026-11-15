@@ -3,7 +3,7 @@ import { authenticate, createAdminClient } from '../_shared/auth.ts'
 import { corsHeaders, errorResponse, json, readJson } from '../_shared/http.ts'
 import { normalizeMedia, TMDB_LANGUAGE, TmdbError, tmdbGet, type MediaType } from '../_shared/tmdb.ts'
 
-const STATUSES = ['ASSISTIR', 'ARQUIVADO', 'ASSISTIDO'] as const
+const STATUSES = ['ASSISTIR', 'ASSISTINDO', 'ARQUIVADO', 'ASSISTIDO'] as const
 type Status = (typeof STATUSES)[number]
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 

@@ -1,9 +1,10 @@
 export type MediaType = 'movie' | 'tv'
 
-export type WatchStatus = 'ASSISTIR' | 'ARQUIVADO' | 'ASSISTIDO'
+export type WatchStatus = 'ASSISTIR' | 'ASSISTINDO' | 'ARQUIVADO' | 'ASSISTIDO'
 
 export const WATCH_STATUS_LABELS: Record<WatchStatus, string> = {
   ASSISTIR: 'Assistir',
+  ASSISTINDO: 'Assistindo',
   ARQUIVADO: 'Arquivado',
   ASSISTIDO: 'Assistido',
 }

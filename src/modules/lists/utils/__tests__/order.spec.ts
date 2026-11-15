@@ -26,6 +26,11 @@ describe('sortListItems', () => {
     expect(sorted.map((i) => i.id)).toEqual(['b', 'a'])
   })
 
+  it('assistindo fica entre para assistir e assistidos', () => {
+    const sorted = sortListItems([item('a', 'ASSISTIDO'), item('b', 'ASSISTINDO'), item('c', 'ASSISTIR')])
+    expect(sorted.map((i) => i.id)).toEqual(['c', 'b', 'a'])
+  })
+
   it('não altera o array original', () => {
     const input = [item('a', 'ARQUIVADO'), item('b', 'ASSISTIR')]
     sortListItems(input)
