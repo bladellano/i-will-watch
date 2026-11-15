@@ -11,6 +11,7 @@ import { useProfileStore } from '@/modules/profile/stores/profile.store'
 import { displayName } from '@/modules/profile/utils/name'
 import { useAuthStore } from '@/modules/auth/stores/auth.store'
 import { signOut } from '@/modules/auth/services/auth.service'
+import AppFooter from '@/components/ui/AppFooter.vue'
 
 const auth = useAuthStore()
 const router = useRouter()
@@ -35,7 +36,7 @@ async function onSignOut() {
 </script>
 
 <template>
-  <div class="min-h-screen bg-slate-950 text-slate-100">
+  <div class="flex min-h-screen flex-col bg-slate-950 text-slate-100">
     <a
       href="#conteudo"
       class="sr-only focus:not-sr-only focus:absolute focus:left-2 focus:top-2 focus:z-50 focus:rounded-lg focus:bg-indigo-500 focus:px-3 focus:py-2 focus:text-white"
@@ -78,6 +79,7 @@ async function onSignOut() {
     <main id="conteudo" tabindex="-1" class="mx-auto max-w-5xl px-4 py-6 outline-none">
       <slot />
     </main>
+    <AppFooter class="mx-auto mt-auto w-full max-w-5xl border-t border-slate-800 px-4 py-6" />
     <!-- Telas largas: widgets nas margens do conteúdo (membros à esquerda, obras à direita). Nas demais, a HomePage os exibe inline. -->
     <aside
       aria-label="Membros recentes"
