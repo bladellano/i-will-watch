@@ -787,9 +787,10 @@ publicação.
     exibido abaixo do formulário de login.
 -   **Cores do status:** Para assistir = verde, Assistindo = âmbar, Assistido = azul,
     Arquivado = cinza (`src/modules/media/utils/status-style.ts`).
--   **Ordenação da lista:** sempre Para assistir → Assistindo → Assistido →
-    Arquivado (`sortListItems`); dentro de cada status, itens fixados
-    primeiro e o restante na ordem de inclusão mais recente.
+-   **Ordenação da lista:** itens fixados ficam no topo, em qualquer
+    status; depois, Para assistir → Assistindo → Assistido → Arquivado
+    (`sortListItems`); dentro de cada grupo, a ordem de inclusão mais
+    recente.
 -   **Fixar itens:** coluna `list_media.is_pinned` (migração
     `20261111160000_list_media_pinned.sql`, exige `npx supabase db
     push`); botão de fixar/desafixar em cada card da lista, com destaque

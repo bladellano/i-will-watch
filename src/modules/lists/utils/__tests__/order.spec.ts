@@ -21,9 +21,14 @@ describe('sortListItems', () => {
     expect(sorted.map((i) => i.id)).toEqual(['b', 'd', 'a', 'c'])
   })
 
-  it('fixado não sobe acima de um status anterior', () => {
-    const sorted = sortListItems([item('a', 'ASSISTIDO', true), item('b', 'ASSISTIR')])
+  it('fixado sobe acima de itens de status anterior', () => {
+    const sorted = sortListItems([item('a', 'ASSISTIR'), item('b', 'ASSISTIDO', true)])
     expect(sorted.map((i) => i.id)).toEqual(['b', 'a'])
+  })
+
+  it('fixado em assistindo fica no topo, acima de para assistir', () => {
+    const sorted = sortListItems([item('a', 'ASSISTIR'), item('b', 'ASSISTINDO', true), item('c', 'ASSISTIR')])
+    expect(sorted.map((i) => i.id)).toEqual(['b', 'a', 'c'])
   })
 
   it('assistindo fica entre para assistir e assistidos', () => {
