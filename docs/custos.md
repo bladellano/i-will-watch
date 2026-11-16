@@ -8,6 +8,7 @@
 | TMDB `/movie/{id}` ou `/tv/{id}` | `add-media` | Ao confirmar a inclusão de uma obra | Gratuito |
 | TMDB `/search/movie` e `/search/tv` | `identify-media` | Após a IA responder (até 6 candidatos) | Gratuito |
 | OpenAI Responses | `identify-media` | **Somente** após clicar em "Identificar" e confirmar o aviso de custo | **Pago** |
+| OpenAI Responses | `summarize-comments` | Ao abrir uma obra com 2+ comentários públicos, **só** se o conjunto de comentários mudou desde o último resumo | **Pago** (centavos de fração por resumo) |
 | Supabase | Todo o app | Uso normal | Plano gratuito (veja limites abaixo) |
 
 Nenhuma outra chamada externa existe no código (verificado por busca de `fetch`/`invoke`).
@@ -18,6 +19,16 @@ Nenhuma outra chamada externa existe no código (verificado por busca de `fetch`
 - Teto de **10 identificações por usuário a cada 24 h** (janela móvel), contado em `ai_usage_log`.
 - Reserva atômica da captura: duplo clique ou duas abas não geram duas chamadas.
 - `reasoning.effort: low`, `max_output_tokens: 3000`, `store: false`, timeout de 90 s.
+
+### Resumo dos comentários (`summarize-comments`)
+
+- Um resumo por obra, igual para todos, em cache na tabela `media_comment_summaries`. Abrir a obra de novo não
+  chama a IA; só gera de novo quando alguém comenta, edita, tira da timeline ou desliga o compartilhamento
+  (comparação por hash dos comentários públicos).
+- Só a partir de 2 comentários públicos, e no máximo os 50 mais recentes entram no resumo.
+- Teto de **30 gerações por usuário a cada 24 h**, contado em `ai_usage_log` com `purpose = 'summary'`. Esse
+  contador é separado do limite de identificações (`purpose = 'identify'`).
+- `reasoning.effort: low`, `max_output_tokens: 2000`, `store: false`, timeout de 60 s.
 - Imagens limitadas a 5 MB (JPEG/PNG/WebP) e apagadas ao concluir ou descartar a captura.
 - `ai_usage_log` não é acessível pelo cliente (RLS e sem permissões); só a função (service role) escreve.
 

@@ -12,6 +12,7 @@ import type { ListItem } from '@/modules/lists/types'
 import { parseRating } from '@/modules/lists/utils/rating'
 import { dateInputToIso, isoToDateInput, todayDateInput } from '@/modules/lists/utils/dates'
 import { posterUrl, releaseYear } from '@/modules/media/services/media.service'
+import CommentSummary from '@/modules/media/components/CommentSummary.vue'
 import { MEDIA_TYPE_LABELS, WATCH_STATUS_LABELS, type WatchStatus } from '@/modules/media/types'
 
 const route = useRoute()
@@ -203,6 +204,8 @@ async function onRemove() {
       </div>
 
       <p class="mt-4 text-sm leading-relaxed text-slate-300">{{ item.media.overview ?? 'Sinopse não disponível.' }}</p>
+
+      <CommentSummary :tmdb-id="item.media.tmdb_id" :media-type="item.media.media_type" />
 
       <form class="mt-6 space-y-4 rounded-xl border border-slate-800 bg-slate-900/60 p-4" novalidate @submit.prevent="onSave">
         <h3 class="font-medium">Seus dados</h3>

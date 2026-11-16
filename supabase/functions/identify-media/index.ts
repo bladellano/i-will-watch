@@ -100,6 +100,7 @@ Deno.serve(async (req) => {
       .from('ai_usage_log')
       .select('id', { count: 'exact', head: true })
       .eq('user_id', auth.user.id)
+      .eq('purpose', 'identify')
       .gte('created_at', since)
     if (countError) throw countError
     if ((count ?? 0) >= AI_LIMIT) {

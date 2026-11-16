@@ -6,7 +6,7 @@ O frontend é um site estático (Vue + Vite). O backend (Supabase e Edge Functio
 
 - [ ] `npm test` e `npm run test:rls` passando; `npm run test:e2e` passando.
 - [ ] Migrações aplicadas: `npx supabase db push`.
-- [ ] Edge Functions publicadas: `npx supabase functions deploy search-tmdb add-media identify-media`.
+- [ ] Edge Functions publicadas: `npx supabase functions deploy search-tmdb add-media identify-media summarize-comments`.
 - [ ] Secrets das funções configurados: `TMDB_API_TOKEN`, `OPENAI_API_KEY` (e opcionalmente `OPENAI_MODEL`). Confira com `npx supabase secrets list`.
 
 ## 2. Hospedagem recomendada: Vercel (plano gratuito)
