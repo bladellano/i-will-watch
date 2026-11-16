@@ -31,7 +31,14 @@ const busy = computed(() => !!props.event.item_id && store.busyLikes.includes(pr
         curtiu
         <template v-if="ownerIsMe">a sua adição:</template>
         <template v-else>a adição de {{ event.owner_name }}: </template>
-        <span class="font-medium text-indigo-300"> {{ event.title }}</span>
+        <button
+          type="button"
+          class="cursor-pointer font-medium text-indigo-300 underline-offset-2 hover:text-indigo-200 hover:underline disabled:cursor-wait"
+          :disabled="store.detailsBusy !== ''"
+          @click="store.openDetails(event)"
+        >
+          {{ event.title }}
+        </button>
         <span class="tabular-nums text-slate-400"> ({{ releaseYear(event.release_date) }})</span>
       </p>
       <div class="mt-0.5 flex flex-wrap items-center gap-3">

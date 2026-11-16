@@ -32,7 +32,14 @@ const remove = () => store.hideNote(itemId.value)
       <p class="text-sm leading-snug text-slate-300">
         <span class="font-semibold text-slate-100">{{ event.actor_name }}</span>
         comentou em
-        <span class="font-medium text-indigo-300">{{ event.title }}</span>
+        <button
+          type="button"
+          class="cursor-pointer font-medium text-indigo-300 underline-offset-2 hover:text-indigo-200 hover:underline disabled:cursor-wait"
+          :disabled="store.detailsBusy !== ''"
+          @click="store.openDetails(event)"
+        >
+          {{ event.title }}
+        </button>
         <span class="tabular-nums text-slate-400"> ({{ releaseYear(event.release_date) }})</span>
       </p>
       <time :datetime="event.occurred_at" class="text-xs text-slate-400">{{ when }}</time>

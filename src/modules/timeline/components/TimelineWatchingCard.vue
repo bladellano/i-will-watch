@@ -49,7 +49,14 @@ async function onHide() {
         <span>
           <span class="font-semibold text-slate-100">{{ event.actor_name }}</span>
           começou a assistir
-          <span class="font-medium text-amber-200">{{ event.title }}</span>
+          <button
+            type="button"
+            class="cursor-pointer font-medium text-amber-200 underline-offset-2 hover:text-amber-100 hover:underline disabled:cursor-wait"
+            :disabled="store.detailsBusy !== ''"
+            @click="store.openDetails(event)"
+          >
+            {{ event.title }}
+          </button>
           <span class="tabular-nums text-slate-400"> ({{ releaseYear(event.release_date) }})</span>
         </span>
         <span class="rounded-full px-2 py-0.5 text-xs font-medium ring-1" :class="statusBadgeClass('ASSISTINDO')">
