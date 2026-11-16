@@ -8,7 +8,7 @@ const props = withDefaults(defineProps<{ posters: string[]; size?: 'sm' | 'lg' }
 const urls = computed(() =>
   props.posters.map((p) => posterUrl(p, 'w185')).filter((u): u is string => !!u).slice(0, 3),
 )
-const dims = computed(() => (props.size === 'lg' ? 'h-28 w-[4.75rem] sm:h-36 sm:w-24' : 'h-14 w-10'))
+const dims = computed(() => (props.size === 'lg' ? 'h-24 w-16 sm:h-36 sm:w-24' : 'h-14 w-10'))
 </script>
 
 <template>
@@ -20,7 +20,7 @@ const dims = computed(() => (props.size === 'lg' ? 'h-28 w-[4.75rem] sm:h-36 sm:
         :src="url"
         alt=""
         loading="lazy"
-        :class="[dims, i > 0 && (size === 'lg' ? '-ml-6' : '-ml-4'), 'rounded-md object-cover shadow-lg ring-1 ring-slate-950']"
+        :class="[dims, i > 0 && (size === 'lg' ? '-ml-5 sm:-ml-6' : '-ml-4'), 'rounded-md object-cover shadow-lg ring-1 ring-slate-950']"
         :style="{ zIndex: 3 - i }"
       />
     </template>

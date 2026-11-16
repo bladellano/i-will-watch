@@ -128,28 +128,31 @@ async function onConfirmDelete() {
       <div v-else class="mt-6 space-y-3">
         <div
           v-if="featured"
-          class="flex flex-wrap items-center gap-4 rounded-2xl border border-indigo-500 bg-indigo-500/5 p-4 sm:gap-6 sm:p-5"
+          class="flex items-center gap-2 rounded-2xl border border-indigo-500 bg-indigo-500/5 p-3 transition-colors hover:bg-indigo-500/10 sm:p-5"
         >
-          <RouterLink :to="{ name: 'list', params: { listaId: featured.id } }" class="flex min-w-0 flex-1 items-center gap-4 sm:gap-6">
+          <RouterLink
+            :to="{ name: 'list', params: { listaId: featured.id } }"
+            class="flex min-w-0 flex-1 items-center gap-3 sm:gap-6"
+            :aria-label="`Abrir lista ${featured.name}`"
+          >
             <ListPosterStack :posters="featured.preview_posters" size="lg" />
-            <div class="min-w-0">
-              <h3 class="truncate text-xl font-bold sm:text-2xl">{{ featured.name }}</h3>
-              <p class="mt-1 text-indigo-300">{{ featured.item_count }} {{ featured.item_count === 1 ? 'obra' : 'obras' }}</p>
-              <p v-if="featured.is_default" class="mt-2 inline-flex items-center gap-1.5 text-sm text-indigo-200">
-                <Crown class="h-4 w-4" aria-hidden="true" /> Sua coleção principal
+            <div class="min-w-0 flex-1">
+              <h3 class="truncate text-lg font-bold sm:text-2xl">{{ featured.name }}</h3>
+              <p class="mt-1 text-sm text-indigo-300 sm:text-base">{{ featured.item_count }} {{ featured.item_count === 1 ? 'obra' : 'obras' }}</p>
+              <p v-if="featured.is_default" class="mt-2 flex items-center gap-1.5 text-sm text-indigo-200">
+                <Crown class="h-4 w-4 shrink-0" aria-hidden="true" />
+                <span class="truncate">Sua coleção principal</span>
               </p>
               <p v-else-if="featured.description" class="mt-2 line-clamp-2 text-sm text-slate-400">{{ featured.description }}</p>
             </div>
-          </RouterLink>
-          <div class="ml-auto flex items-center gap-2">
-            <RouterLink
-              :to="{ name: 'list', params: { listaId: featured.id } }"
-              class="inline-flex items-center gap-2 rounded-xl border border-indigo-400 px-5 py-2.5 font-medium text-indigo-100 hover:bg-indigo-500/20"
+            <span
+              class="ml-auto hidden shrink-0 items-center gap-2 rounded-xl border border-indigo-400 px-5 py-2.5 font-medium text-indigo-100 sm:inline-flex"
+              aria-hidden="true"
             >
-              Abrir lista <ArrowRight class="h-4 w-4" aria-hidden="true" />
-            </RouterLink>
-            <ListActionsMenu :list-name="featured.name" :can-delete="!featured.is_default" @edit="openEdit(featured)" @remove="deleting = featured" />
-          </div>
+              Abrir lista <ArrowRight class="h-4 w-4" />
+            </span>
+          </RouterLink>
+          <ListActionsMenu :list-name="featured.name" :can-delete="!featured.is_default" @edit="openEdit(featured)" @remove="deleting = featured" />
         </div>
 
         <ul v-if="others.length > 0" class="grid gap-3 md:grid-cols-2">
