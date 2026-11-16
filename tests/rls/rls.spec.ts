@@ -164,6 +164,13 @@ describe('media e ai_usage_log', () => {
     expect((await a.from('ai_usage_log').select('id').limit(1)).error).not.toBeNull()
     expect((await a.from('ai_usage_log').insert({ user_id: aId })).error).not.toBeNull()
   })
+  it('resumo de comentários: cache e comentários públicos só pela Edge Function', async () => {
+    expect((await a.from('media_comment_summaries').select('media_id').limit(1)).error).not.toBeNull()
+    expect(
+      (await a.from('media_comment_summaries').insert({ media_id: mediaId, summary: 'x', comment_count: 2, source_hash: 'h', model: 'm' })).error,
+    ).not.toBeNull()
+    expect((await a.rpc('media_public_comments', { p_media_id: mediaId })).error).not.toBeNull()
+  })
 })
 
 describe('profiles', () => {

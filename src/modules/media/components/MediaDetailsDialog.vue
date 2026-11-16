@@ -3,6 +3,7 @@ import { ref, useId, watch } from 'vue'
 import { ExternalLink, X } from 'lucide-vue-next'
 import { posterUrl, releaseYear } from '../services/media.service'
 import { MEDIA_TYPE_LABELS, type MediaType } from '../types'
+import CommentSummary from './CommentSummary.vue'
 
 export interface MediaPreview {
   tmdb_id: number
@@ -87,6 +88,8 @@ function onDialogClick(event: MouseEvent) {
       </div>
 
       <p class="mt-4 text-sm leading-relaxed text-slate-300">{{ props.media.overview || 'Sinopse não disponível.' }}</p>
+
+      <CommentSummary :tmdb-id="props.media.tmdb_id" :media-type="props.media.media_type" />
 
       <div class="mt-4 flex flex-wrap items-center gap-x-5 gap-y-2">
         <slot name="actions" />
