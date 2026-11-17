@@ -7,8 +7,9 @@ import ConfirmDialog from '@/components/ui/ConfirmDialog.vue'
 import { hideNoteFromTimeline } from '@/modules/timeline/services/notes.service'
 import { useTimelineStore } from '@/modules/timeline/stores/timeline.store'
 import { COMMENT_MAX_LENGTH } from '@/modules/timeline/utils/comment'
-import { fetchListItem, removeListItem, updateListItem } from '@/modules/lists/services/list-items.service'
-import type { ListItem } from '@/modules/lists/types'
+import { fetchListItem, moveListItem, removeListItem, updateListItem } from '@/modules/lists/services/list-items.service'
+import { fetchLists } from '@/modules/lists/services/lists.service'
+import type { ListItem, UserList } from '@/modules/lists/types'
 import { parseRating } from '@/modules/lists/utils/rating'
 import { dateInputToIso, isoToDateInput, todayDateInput } from '@/modules/lists/utils/dates'
 import { posterUrl, releaseYear } from '@/modules/media/services/media.service'
@@ -34,6 +35,13 @@ const feedback = ref<{ type: 'success' | 'error'; text: string } | null>(null)
 const confirmRemove = ref(false)
 const removing = ref(false)
 const hidingNote = ref(false)
+const lists = ref<UserList[]>([])
+const targetListId = ref('')
+const moving = ref(false)
+const moveError = ref('')
+
+/** Listas para onde a obra pode ir: todas, menos a atual. */
+const otherLists = computed(() => lists.value.filter((list) => list.id !== listId.value))
 
 /** Estado das Observações já salvas na timeline: publicada, tirada pelo dono ou ainda não publicada. */
 const noteState = computed<'visible' | 'hidden' | 'none'>(() => {
@@ -74,6 +82,7 @@ async function load() {
 }
 
 watch([listId, itemId], load, { immediate: true })
+void loadLists()
 
 /** Marcar como ASSISTIDO preenche a data de hoje; sair desse status limpa a data. */
 function onStatusChange() {
@@ -150,6 +159,27 @@ async function onRemove() {
     feedback.value = { type: 'error', text: e instanceof Error ? e.message : 'Erro inesperado.' }
   } finally {
     removing.value = false
+  }
+}
+async function loadLists() {
+  try {
+    lists.value = await fetchLists()
+  } catch (e) {
+    moveError.value = e instanceof Error ? e.message : 'Erro inesperado.'
+  }
+}
+
+/** Move a obra e abre a lista de destino, onde ela passa a aparecer. */
+async function onMove() {
+  if (!item.value || !targetListId.value || moving.value) return
+  moving.value = true
+  moveError.value = ''
+  try {
+    await moveListItem(item.value.id, targetListId.value)
+    await router.push({ name: 'list', params: { listaId: targetListId.value } })
+  } catch (e) {
+    moveError.value = e instanceof Error ? e.message : 'Erro inesperado.'
+    moving.value = false
   }
 }
 </script>
@@ -283,6 +313,27 @@ async function onRemove() {
           </button>
         </div>
       </form>
+
+      <div v-if="otherLists.length > 0" class="mt-4 rounded-xl border border-slate-800 bg-slate-900/60 p-4">
+        <div class="flex flex-wrap items-end gap-2">
+          <div class="min-w-0 flex-1">
+            <label for="move-list" class="mb-1 block text-sm text-slate-300">Mover para outra lista</label>
+            <select id="move-list" v-model="targetListId" class="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2">
+              <option value="">Escolha a lista de destino</option>
+              <option v-for="list in otherLists" :key="list.id" :value="list.id">{{ list.name }}</option>
+            </select>
+          </div>
+          <button
+            type="button"
+            :disabled="!targetListId || moving"
+            class="rounded-lg border border-slate-700 px-4 py-2 text-sm font-medium text-slate-100 hover:bg-slate-800 disabled:opacity-50"
+            @click="onMove"
+          >
+            {{ moving ? 'Movendo…' : 'Mover' }}
+          </button>
+        </div>
+        <p v-if="moveError" role="alert" class="mt-2 text-sm text-red-400">{{ moveError }}</p>
+      </div>
 
       <ConfirmDialog
         :open="confirmRemove"

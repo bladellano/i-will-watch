@@ -49,6 +49,20 @@ export async function setListItemPinned(itemId: string, pinned: boolean): Promis
   if (error || !data || data.length === 0) throw requestError('Não foi possível atualizar o destaque da obra.')
 }
 
+/**
+ * Move o vínculo para outra lista do usuário. Status, nota, observações, datas e destaque são mantidos.
+ * A constraint (list_id, media_id) impede duplicar a obra na lista de destino (código 23505).
+ */
+export async function moveListItem(itemId: string, targetListId: string): Promise<void> {
+  const { data, error } = await supabase
+    .from('list_media')
+    .update({ list_id: targetListId })
+    .eq('id', itemId)
+    .select('id')
+  if (error?.code === '23505') throw requestError('Esta obra já está na lista de destino.')
+  if (error || !data || data.length === 0) throw requestError('Não foi possível mover a obra.')
+}
+
 /** Remove apenas o vínculo; a obra continua em `media` e nas demais listas. */
 export async function removeListItem(itemId: string): Promise<void> {
   const { data, error } = await supabase.from('list_media').delete().eq('id', itemId).select('id')
