@@ -7,6 +7,12 @@ export async function fetchProfileName(userId: string): Promise<string | null> {
   return data?.name ?? null
 }
 
+export async function fetchProfileAvatar(userId: string): Promise<string | null> {
+  const { data, error } = await supabase.from('profiles').select('avatar_url').eq('id', userId).maybeSingle()
+  if (error) throw requestError('Não foi possível carregar sua foto de perfil.')
+  return data?.avatar_url ?? null
+}
+
 export async function updateProfileName(userId: string, name: string): Promise<void> {
   const { data, error } = await supabase.from('profiles').update({ name }).eq('id', userId).select('id')
   if (error || !data || data.length === 0) throw requestError('Não foi possível salvar seu nome.')

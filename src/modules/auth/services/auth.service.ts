@@ -34,6 +34,15 @@ export async function signUp({ email, password, name }: Credentials & { name?: s
   return data.session !== null
 }
 
+/** Inicia o login com Google. O navegador é redirecionado; ao voltar, a sessão é carregada pelo auth.store. */
+export async function signInWithGoogle(redirectTo: string) {
+  const { error } = await supabase.auth.signInWithOAuth({
+    provider: 'google',
+    options: { redirectTo },
+  })
+  if (error) throw toFriendlyError(error)
+}
+
 export async function signOut() {
   const { error } = await supabase.auth.signOut()
   if (error) throw toFriendlyError(error)

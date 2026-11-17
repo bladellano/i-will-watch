@@ -3,12 +3,25 @@ import { ref } from 'vue'
 import { RouterLink, useRouter } from 'vue-router'
 import AuthLayout from '@/layouts/AuthLayout.vue'
 import AuthForm from '@/modules/auth/components/AuthForm.vue'
-import { signUp, type Credentials } from '@/modules/auth/services/auth.service'
+import GoogleSignInButton from '@/modules/auth/components/GoogleSignInButton.vue'
+import { signUp, signInWithGoogle, type Credentials } from '@/modules/auth/services/auth.service'
 
 const router = useRouter()
 const loading = ref(false)
 const error = ref('')
 const needsConfirmation = ref(false)
+
+async function onGoogle() {
+  loading.value = true
+  error.value = ''
+  try {
+    // Com Google, a conta é criada no primeiro login; o nome e a foto vêm do perfil Google.
+    await signInWithGoogle(`${window.location.origin}/`)
+  } catch (e) {
+    error.value = e instanceof Error ? e.message : 'Erro inesperado.'
+    loading.value = false
+  }
+}
 
 async function onSubmit(credentials: Credentials & { name?: string }) {
   loading.value = true
@@ -33,6 +46,11 @@ async function onSubmit(credentials: Credentials & { name?: string }) {
       <RouterLink :to="{ name: 'login' }" class="text-indigo-400 underline underline-offset-2 hover:text-indigo-300">entre</RouterLink>.
     </p>
     <template v-else>
+      <GoogleSignInButton label="Cadastrar com Google" :loading="loading" class="mb-4" @click="onGoogle" />
+      <p v-if="error" role="alert" class="mb-4 text-sm text-red-400">{{ error }}</p>
+      <div class="mb-4 flex items-center gap-3 text-xs text-slate-500" aria-hidden="true">
+        <span class="h-px flex-1 bg-slate-800" />ou com e-mail<span class="h-px flex-1 bg-slate-800" />
+      </div>
       <AuthForm
         submit-label="Cadastrar"
         autocomplete-password="new-password"

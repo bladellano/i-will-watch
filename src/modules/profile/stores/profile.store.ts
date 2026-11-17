@@ -1,6 +1,7 @@
 import { ref } from 'vue'
 import { defineStore } from 'pinia'
 import {
+  fetchProfileAvatar,
   fetchProfileName,
   fetchShareActivity,
   fetchShareLists,
@@ -12,6 +13,8 @@ import { isValidName, normalizeName } from '../utils/name'
 
 export const useProfileStore = defineStore('profile', () => {
   const name = ref<string | null>(null)
+  /** URL da foto do perfil (conta Google). Nulo quando a conta não tem foto. */
+  const avatarUrl = ref<string | null>(null)
   const loadedFor = ref<string | null>(null)
   const error = ref('')
   /** Se as listas do membro ficam visíveis para os outros membros (modal do widget). Padrão ligado, como no banco. */
@@ -23,7 +26,9 @@ export const useProfileStore = defineStore('profile', () => {
     if (!force && loadedFor.value === userId) return
     error.value = ''
     try {
-      name.value = await fetchProfileName(userId)
+      const [profileName, profileAvatar] = await Promise.all([fetchProfileName(userId), fetchProfileAvatar(userId)])
+      name.value = profileName
+      avatarUrl.value = profileAvatar
       loadedFor.value = userId
     } catch (e) {
       error.value = e instanceof Error ? e.message : 'Erro inesperado.'
@@ -60,6 +65,7 @@ export const useProfileStore = defineStore('profile', () => {
 
   function reset() {
     name.value = null
+    avatarUrl.value = null
     loadedFor.value = null
     error.value = ''
     shareLists.value = true
@@ -68,6 +74,7 @@ export const useProfileStore = defineStore('profile', () => {
 
   return {
     name,
+    avatarUrl,
     error,
     shareLists,
     shareActivity,

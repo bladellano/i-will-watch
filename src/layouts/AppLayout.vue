@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted } from 'vue'
-import { LogOut, Clapperboard, UserRound } from 'lucide-vue-next'
+import { LogOut, Clapperboard } from 'lucide-vue-next'
 import { RouterLink, useRouter } from 'vue-router'
 import { useActivityStore } from '@/modules/activity/stores/activity.store'
 import RecentAdditionsWidget from '@/modules/activity/components/RecentAdditionsWidget.vue'
@@ -20,6 +20,7 @@ const activity = useActivityStore()
 const recentMembers = useRecentMembersStore()
 const timeline = useTimelineStore()
 const shownName = computed(() => displayName(profile.name, auth.user?.email))
+const initial = computed(() => shownName.value.trim().charAt(0).toUpperCase() || '?')
 
 onMounted(() => {
   if (auth.user?.id) void profile.load(auth.user.id)
@@ -62,7 +63,18 @@ async function onSignOut() {
             class="inline-flex max-w-48 items-center gap-1 rounded-lg px-2 py-1.5 text-slate-300 hover:bg-slate-800 sm:max-w-64"
             :aria-label="`Meu perfil (${shownName})`"
           >
-            <UserRound class="h-4 w-4 shrink-0" aria-hidden="true" />
+            <img
+              v-if="profile.avatarUrl"
+              :src="profile.avatarUrl"
+              alt=""
+              referrerpolicy="no-referrer"
+              class="h-6 w-6 shrink-0 rounded-full object-cover"
+            />
+            <span
+              v-else
+              class="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-indigo-500 text-xs font-medium text-white"
+              aria-hidden="true"
+            >{{ initial }}</span>
             <span class="truncate">{{ shownName }}</span>
           </RouterLink>
           <button

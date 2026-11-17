@@ -1,9 +1,11 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import { RouterLink, useRoute, useRouter } from 'vue-router'
 import AuthLayout from '@/layouts/AuthLayout.vue'
 import AuthForm from '@/modules/auth/components/AuthForm.vue'
-import { signIn, type Credentials } from '@/modules/auth/services/auth.service'
+import GoogleSignInButton from '@/modules/auth/components/GoogleSignInButton.vue'
+import { signIn, signInWithGoogle, type Credentials } from '@/modules/auth/services/auth.service'
+import { safeRedirect } from '@/modules/auth/utils/redirect'
 import loginBackground from '@/assets/images/login-background.webp'
 
 const router = useRouter()
@@ -11,17 +13,29 @@ const route = useRoute()
 const loading = ref(false)
 const error = ref('')
 
+const redirectPath = computed(() => safeRedirect(route.query.redirect))
+
 async function onSubmit(credentials: Credentials) {
   loading.value = true
   error.value = ''
   try {
     await signIn(credentials)
-    const redirect = typeof route.query.redirect === 'string' ? route.query.redirect : '/'
-    // Aceita apenas caminhos internos para evitar redirecionamento externo.
-    await router.push(redirect.startsWith('/') && !redirect.startsWith('//') ? redirect : '/')
+    await router.push(redirectPath.value)
   } catch (e) {
     error.value = e instanceof Error ? e.message : 'Erro inesperado.'
   } finally {
+    loading.value = false
+  }
+}
+
+async function onGoogle() {
+  loading.value = true
+  error.value = ''
+  try {
+    // Volta para a tela de origem (ex.: /capturar) com a captura preservada no fluxo do app.
+    await signInWithGoogle(`${window.location.origin}${redirectPath.value}`)
+  } catch (e) {
+    error.value = e instanceof Error ? e.message : 'Erro inesperado.'
     loading.value = false
   }
 }
@@ -30,6 +44,11 @@ async function onSubmit(credentials: Credentials) {
 <template>
   <AuthLayout :background-src="loginBackground">
     <h2 class="mb-4 text-lg font-medium">Entrar</h2>
+    <GoogleSignInButton label="Continuar com Google" :loading="loading" class="mb-4" @click="onGoogle" />
+    <p v-if="error" role="alert" class="mb-4 text-sm text-red-400">{{ error }}</p>
+    <div class="mb-4 flex items-center gap-3 text-xs text-slate-500" aria-hidden="true">
+      <span class="h-px flex-1 bg-slate-800" />ou com e-mail<span class="h-px flex-1 bg-slate-800" />
+    </div>
     <AuthForm
       submit-label="Entrar"
       autocomplete-password="current-password"
