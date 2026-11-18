@@ -1,10 +1,11 @@
 // Modelos de e-mail para membros. Funções puras (sem imports): testáveis fora do Deno.
 // Para criar um novo tipo: acrescente o nome em EMAIL_TYPES e um construtor em BUILDERS.
 
-/** Título recente de um membro, usado no e-mail de últimas adições. */
+/** Título recente exibido em e-mails de lista. memberName só existe em obras da comunidade. */
 export interface RecentItem {
   title: string
   mediaType: string
+  memberName?: string
 }
 
 export interface Recipient {
@@ -12,7 +13,7 @@ export interface Recipient {
   id?: string | null
   email: string
   name: string | null
-  /** Itens recentes do membro (só preenchido para tipos que os usam). */
+  /** Itens recentes do destinatário (só preenchido para tipos que os usam). */
   recentItems?: RecentItem[]
 }
 
@@ -45,14 +46,14 @@ export const APP_GOALS: readonly { title: string; description: string }[] = [
   },
 ]
 
-/** Quantos títulos recentes entram no e-mail de últimas adições. */
+/** Quantos títulos entram nos e-mails de lista. */
 export const RECENT_ITEMS_EMAIL_LIMIT = 5
 
-export const EMAIL_TYPES = ['lembrete', 'ultimas_adicoes'] as const
+export const EMAIL_TYPES = ['lembrete', 'ultimas_adicoes', 'obras_comunidade'] as const
 export type EmailType = (typeof EMAIL_TYPES)[number]
 
-/** Tipos que precisam dos itens recentes de cada membro antes do envio. */
-export const TYPES_WITH_RECENT_ITEMS: readonly EmailType[] = ['ultimas_adicoes']
+/** Tipos que precisam de itens recentes antes do envio. */
+export const TYPES_WITH_RECENT_ITEMS: readonly EmailType[] = ['ultimas_adicoes', 'obras_comunidade']
 
 export function isEmailType(value: unknown): value is EmailType {
   return typeof value === 'string' && (EMAIL_TYPES as readonly string[]).includes(value)
@@ -106,23 +107,31 @@ function buildLembrete(recipient: Recipient, options: BuildOptions): EmailConten
 
 const MEDIA_LABEL: Record<string, string> = { movie: 'Filme', tv: 'Série' }
 
-const itemLabel = (item: RecentItem) => `${MEDIA_LABEL[item.mediaType] ?? 'Título'}: ${cleanName(item.title) ?? 'Sem título'}`
+const itemLabel = (item: RecentItem) => {
+  const base = `${MEDIA_LABEL[item.mediaType] ?? 'Título'}: ${cleanName(item.title) ?? 'Sem título'}`
+  return item.memberName ? `${base} (adicionada por ${item.memberName})` : base
+}
 
-function buildUltimasAdicoes(recipient: Recipient, options: BuildOptions): EmailContent {
+interface ListCopy {
+  subject: string
+  intro: string
+  closing: string
+}
+
+/** Monta um e-mail com lista numerada de títulos; o conteúdo muda só pelo texto de `copy`. */
+function buildListEmail(recipient: Recipient, options: BuildOptions, copy: ListCopy): EmailContent {
   const hello = greeting(cleanName(recipient.name))
   const items = (recipient.recentItems ?? []).slice(0, RECENT_ITEMS_EMAIL_LIMIT)
-  const intro = 'Estes são os últimos títulos que você adicionou ao app:'
-  const closing = 'Quer ajustar alguma coisa ou registrar a próxima indicação? Acesse o app quando quiser.'
   const link = options.appUrl
 
   const text = [
     hello,
     '',
-    intro,
+    copy.intro,
     '',
     ...items.map((item, index) => `${index + 1}. ${itemLabel(item)}`),
     '',
-    closing,
+    copy.closing,
     ...(link ? ['', `Acesse: ${link}`] : []),
     '',
     footer,
@@ -130,21 +139,32 @@ function buildUltimasAdicoes(recipient: Recipient, options: BuildOptions): Email
 
   const html = [
     `<p>${escapeHtml(hello)}</p>`,
-    `<p>${escapeHtml(intro)}</p>`,
+    `<p>${escapeHtml(copy.intro)}</p>`,
     '<ol>',
     ...items.map((item) => `<li>${escapeHtml(itemLabel(item))}</li>`),
     '</ol>',
-    `<p>${escapeHtml(closing)}</p>`,
+    `<p>${escapeHtml(copy.closing)}</p>`,
     ...(link ? [`<p><a href="${escapeHtml(link)}">Abrir o app</a></p>`] : []),
     `<p style="color:#666;font-size:12px">${escapeHtml(footer)}</p>`,
   ].join('\n')
 
-  return { subject: 'Suas últimas adições no app Minha lista de filmes e séries', text: text.join('\n'), html }
+  return { subject: copy.subject, text: text.join('\n'), html }
 }
 
 const BUILDERS: Record<EmailType, (recipient: Recipient, options: BuildOptions) => EmailContent> = {
   lembrete: buildLembrete,
-  ultimas_adicoes: buildUltimasAdicoes,
+  ultimas_adicoes: (recipient, options) =>
+    buildListEmail(recipient, options, {
+      subject: 'Suas últimas adições no app Minha lista de filmes e séries',
+      intro: 'Estes são os últimos títulos que você adicionou ao app:',
+      closing: 'Quer ajustar alguma coisa ou registrar a próxima indicação? Acesse o app quando quiser.',
+    }),
+  obras_comunidade: (recipient, options) =>
+    buildListEmail(recipient, options, {
+      subject: 'As obras mais recentes da comunidade no app Minha lista de filmes e séries',
+      intro: 'Estas são as obras adicionadas mais recentemente por outros membros que compartilham suas listas:',
+      closing: 'Veja se alguma delas já está na sua lista ou registre a sua próxima indicação. Acesse o app quando quiser.',
+    }),
 }
 
 export function buildEmail(type: EmailType, recipient: Recipient, options: BuildOptions): EmailContent {

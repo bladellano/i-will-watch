@@ -3,6 +3,7 @@ import { type AuthUserLike, MAX_RECIPIENTS_PER_RUN, parseSendRequest, selectReci
 import { buildEmail, type EmailType, type Recipient, TYPES_WITH_RECENT_ITEMS } from '../_shared/email-templates.ts'
 import { corsHeaders, errorResponse, json, readJson } from '../_shared/http.ts'
 import { sendMail, smtpConfigured } from '../_shared/mail.ts'
+import { fetchSharedAdditions, pickSharedItemsFor } from '../_shared/community-items.ts'
 import { fetchRecentItems } from '../_shared/member-items.ts'
 import { safeEqual } from '../_shared/notify.ts'
 
@@ -69,6 +70,18 @@ Deno.serve(async (req) => {
 async function withRecipientData(type: EmailType, recipients: Recipient[]): Promise<Recipient[]> {
   if (!TYPES_WITH_RECENT_ITEMS.includes(type)) return recipients
   const admin = createAdminClient()
+
+  if (type === 'obras_comunidade') {
+    // Uma só leitura para todos; cada destinatário recebe as obras dos outros membros que compartilham.
+    const additions = await fetchSharedAdditions(admin)
+    return recipients.flatMap((recipient) => {
+      if (!recipient.id) return []
+      const recentItems = pickSharedItemsFor(additions, recipient.id)
+      return recentItems.length > 0 ? [{ ...recipient, recentItems }] : []
+    })
+  }
+
+  // ultimas_adicoes: as adições do próprio membro.
   const ready: Recipient[] = []
   for (const recipient of recipients) {
     if (!recipient.id) continue
