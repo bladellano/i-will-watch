@@ -13,6 +13,7 @@ import type { ListItem, UserList } from '@/modules/lists/types'
 import { parseRating } from '@/modules/lists/utils/rating'
 import { dateInputToIso, isoToDateInput, todayDateInput } from '@/modules/lists/utils/dates'
 import { posterUrl, releaseYear } from '@/modules/media/services/media.service'
+import WatchProviderLine from '@/modules/media/components/WatchProviderLine.vue'
 import { MEDIA_TYPE_LABELS, WATCH_STATUS_LABELS, type WatchStatus } from '@/modules/media/types'
 
 const route = useRoute()
@@ -229,6 +230,7 @@ async function onMove() {
           <a :href="tmdbUrl" target="_blank" rel="noopener noreferrer" class="mt-2 inline-flex items-center gap-1 text-sm text-indigo-400 hover:underline">
             Ver no TMDB <ExternalLink class="h-3.5 w-3.5" aria-hidden="true" />
           </a>
+          <WatchProviderLine :tmdb-id="item.media.tmdb_id" :media-type="item.media.media_type" />
         </div>
       </div>
 
