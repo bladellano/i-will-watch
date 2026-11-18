@@ -46,8 +46,11 @@ export const APP_GOALS: readonly { title: string; description: string }[] = [
   },
 ]
 
-/** Quantos títulos entram nos e-mails de lista. */
+/** Quantos títulos entram no e-mail de últimas adições do próprio membro. */
 export const RECENT_ITEMS_EMAIL_LIMIT = 5
+
+/** Quantos títulos entram no e-mail de obras da comunidade. */
+export const COMMUNITY_ITEMS_LIMIT = 15
 
 export const EMAIL_TYPES = ['lembrete', 'ultimas_adicoes', 'obras_comunidade'] as const
 export type EmailType = (typeof EMAIL_TYPES)[number]
@@ -121,7 +124,8 @@ interface ListCopy {
 /** Monta um e-mail com lista numerada de títulos; o conteúdo muda só pelo texto de `copy`. */
 function buildListEmail(recipient: Recipient, options: BuildOptions, copy: ListCopy): EmailContent {
   const hello = greeting(cleanName(recipient.name))
-  const items = (recipient.recentItems ?? []).slice(0, RECENT_ITEMS_EMAIL_LIMIT)
+  // Quem escolhe os itens (e a quantidade) é o chamador: aqui só se formata a lista.
+  const items = recipient.recentItems ?? []
   const link = options.appUrl
 
   const text = [

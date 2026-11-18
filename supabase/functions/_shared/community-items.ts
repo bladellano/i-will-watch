@@ -1,5 +1,5 @@
 import type { SupabaseClient } from 'npm:@supabase/supabase-js@2'
-import { RECENT_ITEMS_EMAIL_LIMIT, type RecentItem } from './email-templates.ts'
+import { COMMUNITY_ITEMS_LIMIT, type RecentItem } from './email-templates.ts'
 
 /** Quantas adições recentes (de membros que compartilham) são lidas antes de montar as listas. */
 const SCAN_LIMIT = 1000
@@ -52,7 +52,7 @@ export async function fetchSharedAdditions(admin: SupabaseClient): Promise<Share
 }
 
 /**
- * Escolhe até cinco obras para um destinatário: ignora as adições dele mesmo e não repete a mesma obra.
+ * Escolhe até COMMUNITY_ITEMS_LIMIT obras para um destinatário: ignora as adições dele mesmo e não repete a mesma obra.
  * Recebe a lista já ordenada (mais recente primeiro).
  */
 export function pickSharedItemsFor(additions: SharedAddition[], recipientId: string): RecentItem[] {
@@ -62,7 +62,7 @@ export function pickSharedItemsFor(additions: SharedAddition[], recipientId: str
     if (addition.ownerId === recipientId || seen.has(addition.mediaId)) continue
     seen.add(addition.mediaId)
     items.push(addition.item)
-    if (items.length === RECENT_ITEMS_EMAIL_LIMIT) break
+    if (items.length === COMMUNITY_ITEMS_LIMIT) break
   }
   return items
 }
