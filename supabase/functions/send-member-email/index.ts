@@ -1,8 +1,9 @@
 import { createAdminClient } from '../_shared/auth.ts'
 import { type AuthUserLike, MAX_RECIPIENTS_PER_RUN, parseSendRequest, selectRecipients } from '../_shared/email-audience.ts'
-import { buildEmail } from '../_shared/email-templates.ts'
+import { buildEmail, type EmailType, type Recipient, TYPES_WITH_RECENT_ITEMS } from '../_shared/email-templates.ts'
 import { corsHeaders, errorResponse, json, readJson } from '../_shared/http.ts'
 import { sendMail, smtpConfigured } from '../_shared/mail.ts'
+import { fetchRecentItems } from '../_shared/member-items.ts'
 import { safeEqual } from '../_shared/notify.ts'
 
 /**
@@ -29,12 +30,19 @@ Deno.serve(async (req) => {
     users = await listAllUsers()
   } catch (error) {
     console.error('send-member-email: listagem de membros falhou:', reason(error))
-    return errorResponse(500, 'Não foi possível consultar os membros.')
+    // Admin autenticado pelo segredo: o motivo ajuda a diagnosticar. Nunca contém e-mails.
+    return json({ error: 'Não foi possível consultar os membros.', detail: reason(error) }, 500)
   }
 
-  const recipients = selectRecipients(users, to)
-  if (to !== 'all' && recipients.length === 0) {
-    return errorResponse(404, 'Destinatário não encontrado entre os membros confirmados.')
+  let recipients: Recipient[]
+  try {
+    recipients = await withRecipientData(type, selectRecipients(users, to))
+  } catch (error) {
+    console.error('send-member-email: consulta de itens falhou:', reason(error))
+    return json({ error: 'Não foi possível consultar os itens dos membros.', detail: reason(error) }, 500)
+  }
+  if (recipients.length === 0) {
+    return errorResponse(404, 'Nenhum destinatário elegível para este e-mail (membro confirmado, com itens se o tipo exigir).')
   }
   if (recipients.length > MAX_RECIPIENTS_PER_RUN) {
     return errorResponse(422, `Limite de ${MAX_RECIPIENTS_PER_RUN} destinatários por envio.`)
@@ -56,6 +64,19 @@ Deno.serve(async (req) => {
   }
   return json(summary)
 })
+
+/** Anexa os dados que cada tipo precisa; membros sem dados necessários ficam de fora. */
+async function withRecipientData(type: EmailType, recipients: Recipient[]): Promise<Recipient[]> {
+  if (!TYPES_WITH_RECENT_ITEMS.includes(type)) return recipients
+  const admin = createAdminClient()
+  const ready: Recipient[] = []
+  for (const recipient of recipients) {
+    if (!recipient.id) continue
+    const recentItems = await fetchRecentItems(admin, recipient.id)
+    if (recentItems.length > 0) ready.push({ ...recipient, recentItems })
+  }
+  return ready
+}
 
 /** Percorre todas as páginas de usuários do Auth (service role). */
 async function listAllUsers(): Promise<AuthUserLike[]> {

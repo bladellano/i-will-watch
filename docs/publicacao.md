@@ -104,7 +104,7 @@ Diagnóstico: `select * from net._http_response order by created desc limit 5;` 
 
 ### 3.4 E-mails para membros (lembretes)
 
-Envia e-mails aos membros confirmados, pelo comando `npm run email`. O tipo inicial é `lembrete`: relembra o membro do app e dos três objetivos principais, com um convite para voltar. Novos tipos entram em `supabase/functions/_shared/email-templates.ts`. Os textos dos objetivos ficam em `APP_GOALS`, no mesmo arquivo.
+Envia e-mails aos membros confirmados, pelo comando `npm run email`. Tipos disponíveis: `lembrete` (relembra o membro do app e dos três objetivos principais) e `ultimas_adicoes` (lista os cinco últimos títulos que o próprio membro adicionou; quem não adicionou nada não recebe). Novos tipos entram em `supabase/functions/_shared/email-templates.ts`. Os textos dos objetivos ficam em `APP_GOALS`, no mesmo arquivo.
 
 Configuração, uma única vez (depois da seção 3.2, que já configura o SMTP):
 

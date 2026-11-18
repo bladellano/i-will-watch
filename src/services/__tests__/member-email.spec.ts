@@ -44,8 +44,8 @@ describe('selectRecipients: quem recebe', () => {
   it('inclui só membros confirmados, não banidos e sem duplicar', () => {
     const recipients = selectRecipients(users, 'all', NOW)
     expect(recipients).toEqual([
-      { email: 'Ana@x.com', name: 'Ana' },
-      { email: 'ban-expirado@x.com', name: null },
+      { id: null, email: 'Ana@x.com', name: 'Ana' },
+      { id: null, email: 'ban-expirado@x.com', name: null },
     ])
   })
 

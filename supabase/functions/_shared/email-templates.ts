@@ -1,9 +1,19 @@
 // Modelos de e-mail para membros. Funções puras (sem imports): testáveis fora do Deno.
 // Para criar um novo tipo: acrescente o nome em EMAIL_TYPES e um construtor em BUILDERS.
 
+/** Título recente de um membro, usado no e-mail de últimas adições. */
+export interface RecentItem {
+  title: string
+  mediaType: string
+}
+
 export interface Recipient {
+  /** id do usuário no Auth; usado para buscar dados do membro quando o tipo precisa. */
+  id?: string | null
   email: string
   name: string | null
+  /** Itens recentes do membro (só preenchido para tipos que os usam). */
+  recentItems?: RecentItem[]
 }
 
 export interface EmailContent {
@@ -35,8 +45,14 @@ export const APP_GOALS: readonly { title: string; description: string }[] = [
   },
 ]
 
-export const EMAIL_TYPES = ['lembrete'] as const
+/** Quantos títulos recentes entram no e-mail de últimas adições. */
+export const RECENT_ITEMS_EMAIL_LIMIT = 5
+
+export const EMAIL_TYPES = ['lembrete', 'ultimas_adicoes'] as const
 export type EmailType = (typeof EMAIL_TYPES)[number]
+
+/** Tipos que precisam dos itens recentes de cada membro antes do envio. */
+export const TYPES_WITH_RECENT_ITEMS: readonly EmailType[] = ['ultimas_adicoes']
 
 export function isEmailType(value: unknown): value is EmailType {
   return typeof value === 'string' && (EMAIL_TYPES as readonly string[]).includes(value)
@@ -52,9 +68,12 @@ export function cleanName(value: string | null): string | null {
   return clean === '' ? null : clean
 }
 
+const greeting = (name: string | null) => (name ? `Olá, ${name.split(' ')[0]}!` : 'Olá!')
+
+const footer = `Você recebeu este e-mail porque tem uma conta no app ${APP_NAME}.`
+
 function buildLembrete(recipient: Recipient, options: BuildOptions): EmailContent {
-  const name = cleanName(recipient.name)
-  const hello = name ? `Olá, ${name.split(' ')[0]}!` : 'Olá!'
+  const hello = greeting(cleanName(recipient.name))
   const closing = 'Sua próxima indicação pode virar um registro organizado em poucos segundos. Que tal dar uma olhada na sua lista hoje?'
   const link = options.appUrl
 
@@ -68,7 +87,7 @@ function buildLembrete(recipient: Recipient, options: BuildOptions): EmailConten
     closing,
     ...(link ? ['', `Acesse: ${link}`] : []),
     '',
-    `Você recebeu este e-mail porque tem uma conta no app ${APP_NAME}.`,
+    footer,
   ]
 
   const html = [
@@ -79,14 +98,53 @@ function buildLembrete(recipient: Recipient, options: BuildOptions): EmailConten
     '</ol>',
     `<p>${escapeHtml(closing)}</p>`,
     ...(link ? [`<p><a href="${escapeHtml(link)}">Abrir o app</a></p>`] : []),
-    `<p style="color:#666;font-size:12px">Você recebeu este e-mail porque tem uma conta no app ${escapeHtml(APP_NAME)}.</p>`,
+    `<p style="color:#666;font-size:12px">${escapeHtml(footer)}</p>`,
   ].join('\n')
 
   return { subject: 'Sua lista de filmes e séries está esperando por você', text: text.join('\n'), html }
 }
 
+const MEDIA_LABEL: Record<string, string> = { movie: 'Filme', tv: 'Série' }
+
+const itemLabel = (item: RecentItem) => `${MEDIA_LABEL[item.mediaType] ?? 'Título'}: ${cleanName(item.title) ?? 'Sem título'}`
+
+function buildUltimasAdicoes(recipient: Recipient, options: BuildOptions): EmailContent {
+  const hello = greeting(cleanName(recipient.name))
+  const items = (recipient.recentItems ?? []).slice(0, RECENT_ITEMS_EMAIL_LIMIT)
+  const intro = 'Estes são os últimos títulos que você adicionou ao app:'
+  const closing = 'Quer ajustar alguma coisa ou registrar a próxima indicação? Acesse o app quando quiser.'
+  const link = options.appUrl
+
+  const text = [
+    hello,
+    '',
+    intro,
+    '',
+    ...items.map((item, index) => `${index + 1}. ${itemLabel(item)}`),
+    '',
+    closing,
+    ...(link ? ['', `Acesse: ${link}`] : []),
+    '',
+    footer,
+  ]
+
+  const html = [
+    `<p>${escapeHtml(hello)}</p>`,
+    `<p>${escapeHtml(intro)}</p>`,
+    '<ol>',
+    ...items.map((item) => `<li>${escapeHtml(itemLabel(item))}</li>`),
+    '</ol>',
+    `<p>${escapeHtml(closing)}</p>`,
+    ...(link ? [`<p><a href="${escapeHtml(link)}">Abrir o app</a></p>`] : []),
+    `<p style="color:#666;font-size:12px">${escapeHtml(footer)}</p>`,
+  ].join('\n')
+
+  return { subject: 'Suas últimas adições no app Minha lista de filmes e séries', text: text.join('\n'), html }
+}
+
 const BUILDERS: Record<EmailType, (recipient: Recipient, options: BuildOptions) => EmailContent> = {
   lembrete: buildLembrete,
+  ultimas_adicoes: buildUltimasAdicoes,
 }
 
 export function buildEmail(type: EmailType, recipient: Recipient, options: BuildOptions): EmailContent {

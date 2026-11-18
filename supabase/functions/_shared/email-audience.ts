@@ -8,6 +8,7 @@ const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
 /** Formato mínimo de um usuário do Supabase Auth (service role). */
 export interface AuthUserLike {
+  id?: string | null
   email?: string | null
   email_confirmed_at?: string | null
   banned_until?: string | null
@@ -65,7 +66,11 @@ export function selectRecipients(users: AuthUserLike[], to: 'all' | string, now 
     seen.add(key)
 
     const meta = user.raw_user_meta_data?.name
-    recipients.push({ email, name: typeof meta === 'string' && meta.trim() !== '' ? meta.trim() : null })
+    recipients.push({
+      id: user.id ?? null,
+      email,
+      name: typeof meta === 'string' && meta.trim() !== '' ? meta.trim() : null,
+    })
   }
   return recipients
 }
