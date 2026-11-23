@@ -4,6 +4,7 @@ import { RouterLink } from 'vue-router'
 import { ArrowRight, Camera, Crown, FolderPlus, Plus } from 'lucide-vue-next'
 import AppLayout from '@/layouts/AppLayout.vue'
 import ConfirmDialog from '@/components/ui/ConfirmDialog.vue'
+import CollapseToggle from '@/components/ui/CollapseToggle.vue'
 import CommunityTimeline from '@/modules/timeline/components/CommunityTimeline.vue'
 import RecentAdditionsWidget from '@/modules/activity/components/RecentAdditionsWidget.vue'
 import RecentMembersWidget from '@/modules/members/components/RecentMembersWidget.vue'
@@ -14,9 +15,11 @@ import { useListsStore } from '@/modules/lists/stores/lists.store'
 import { useCapturesStore } from '@/modules/capture/stores/captures.store'
 import { CAPTURE_STATUS_LABELS } from '@/modules/capture/types'
 import type { ListSummary } from '@/modules/lists/types'
+import { useCollapsible } from '@/composables/useCollapsible'
 
 const store = useListsStore()
 const captures = useCapturesStore()
+const { open: listsOpen, contentId: listsContentId, toggle: toggleLists } = useCollapsible()
 
 const formOpen = ref(false)
 const editing = ref<ListSummary | null>(null)
@@ -86,7 +89,9 @@ async function onConfirmDelete() {
     >
       <header class="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h2 id="lists-title" class="text-2xl font-bold tracking-tight sm:text-3xl">Suas listas</h2>
+          <h2 id="lists-title" class="text-2xl font-bold tracking-tight sm:text-3xl">
+            <CollapseToggle :expanded="listsOpen" :controls="listsContentId" @toggle="toggleLists">Suas listas</CollapseToggle>
+          </h2>
           <p class="mt-1 text-indigo-300/90">Organize suas obras por tema</p>
           <p class="mt-1 text-sm text-slate-400">
             {{ store.lists.length }} {{ store.lists.length === 1 ? 'lista' : 'listas' }} · {{ totalItems }}
@@ -118,59 +123,61 @@ async function onConfirmDelete() {
 
       <p v-if="actionError" role="alert" class="mt-3 text-sm text-red-400">{{ actionError }}</p>
 
-      <p v-if="store.loading && store.lists.length === 0" role="status" class="mt-6 text-sm text-slate-400">Carregando listas…</p>
-      <div v-else-if="store.error" role="alert" class="mt-6 text-sm text-red-400">
-        {{ store.error }}
-        <button type="button" class="ml-2 underline" @click="store.load()">Tentar de novo</button>
-      </div>
-      <p v-else-if="store.lists.length === 0" class="mt-6 text-sm text-slate-400">Você ainda não tem listas.</p>
-
-      <div v-else class="mt-6 space-y-3">
-        <div
-          v-if="featured"
-          class="flex items-center gap-2 rounded-2xl border border-indigo-500 bg-indigo-500/5 p-3 transition-colors hover:bg-indigo-500/10 sm:p-5"
-        >
-          <RouterLink
-            :to="{ name: 'list', params: { listaId: featured.id } }"
-            class="flex min-w-0 flex-1 items-center gap-3 sm:gap-6"
-            :aria-label="`Abrir lista ${featured.name}`"
-          >
-            <ListPosterStack :posters="featured.preview_posters" size="lg" />
-            <div class="min-w-0 flex-1">
-              <h3 class="truncate text-lg font-bold sm:text-2xl">{{ featured.name }}</h3>
-              <p class="mt-1 text-sm text-indigo-300 sm:text-base">{{ featured.item_count }} {{ featured.item_count === 1 ? 'obra' : 'obras' }}</p>
-              <p v-if="featured.is_default" class="mt-2 flex items-center gap-1.5 text-sm text-indigo-200">
-                <Crown class="h-4 w-4 shrink-0" aria-hidden="true" />
-                <span class="truncate">Sua coleção principal</span>
-              </p>
-              <p v-else-if="featured.description" class="mt-2 line-clamp-2 text-sm text-slate-400">{{ featured.description }}</p>
-            </div>
-            <span
-              class="ml-auto hidden shrink-0 items-center gap-2 rounded-xl border border-indigo-400 px-5 py-2.5 font-medium text-indigo-100 sm:inline-flex"
-              aria-hidden="true"
-            >
-              Abrir lista <ArrowRight class="h-4 w-4" />
-            </span>
-          </RouterLink>
-          <ListActionsMenu :list-name="featured.name" :can-delete="!featured.is_default" @edit="openEdit(featured)" @remove="deleting = featured" />
+      <div :id="listsContentId" v-show="listsOpen">
+        <p v-if="store.loading && store.lists.length === 0" role="status" class="mt-6 text-sm text-slate-400">Carregando listas…</p>
+        <div v-else-if="store.error" role="alert" class="mt-6 text-sm text-red-400">
+          {{ store.error }}
+          <button type="button" class="ml-2 underline" @click="store.load()">Tentar de novo</button>
         </div>
+        <p v-else-if="store.lists.length === 0" class="mt-6 text-sm text-slate-400">Você ainda não tem listas.</p>
 
-        <ul v-if="others.length > 0" class="grid gap-3 md:grid-cols-2">
-          <li
-            v-for="list in others"
-            :key="list.id"
-            class="flex items-center gap-3 rounded-xl border border-slate-800 bg-slate-900/60 p-3 transition-colors hover:border-indigo-500/60 hover:bg-slate-800/60"
+        <div v-else class="mt-6 space-y-3">
+          <div
+            v-if="featured"
+            class="flex items-center gap-2 rounded-2xl border border-indigo-500 bg-indigo-500/5 p-3 transition-colors hover:bg-indigo-500/10 sm:p-5"
           >
-            <RouterLink :to="{ name: 'list', params: { listaId: list.id } }" class="flex min-w-0 flex-1 items-center gap-3">
-              <ListPosterStack :posters="list.preview_posters" />
-              <div class="min-w-0">
-                <h3 class="truncate font-semibold">{{ list.name }}</h3>
-                <p class="text-sm text-slate-400">{{ list.item_count }} {{ list.item_count === 1 ? 'obra' : 'obras' }}</p>
+            <RouterLink
+              :to="{ name: 'list', params: { listaId: featured.id } }"
+              class="flex min-w-0 flex-1 items-center gap-3 sm:gap-6"
+              :aria-label="`Abrir lista ${featured.name}`"
+            >
+              <ListPosterStack :posters="featured.preview_posters" size="lg" />
+              <div class="min-w-0 flex-1">
+                <h3 class="truncate text-lg font-bold sm:text-2xl">{{ featured.name }}</h3>
+                <p class="mt-1 text-sm text-indigo-300 sm:text-base">{{ featured.item_count }} {{ featured.item_count === 1 ? 'obra' : 'obras' }}</p>
+                <p v-if="featured.is_default" class="mt-2 flex items-center gap-1.5 text-sm text-indigo-200">
+                  <Crown class="h-4 w-4 shrink-0" aria-hidden="true" />
+                  <span class="truncate">Sua coleção principal</span>
+                </p>
+                <p v-else-if="featured.description" class="mt-2 line-clamp-2 text-sm text-slate-400">{{ featured.description }}</p>
               </div>
+              <span
+                class="ml-auto hidden shrink-0 items-center gap-2 rounded-xl border border-indigo-400 px-5 py-2.5 font-medium text-indigo-100 sm:inline-flex"
+                aria-hidden="true"
+              >
+                Abrir lista <ArrowRight class="h-4 w-4" />
+              </span>
             </RouterLink>
-            <ListActionsMenu :list-name="list.name" :can-delete="!list.is_default" @edit="openEdit(list)" @remove="deleting = list" />
-          </li>
-        </ul>
+            <ListActionsMenu :list-name="featured.name" :can-delete="!featured.is_default" @edit="openEdit(featured)" @remove="deleting = featured" />
+          </div>
+
+          <ul v-if="others.length > 0" class="grid gap-3 md:grid-cols-2">
+            <li
+              v-for="list in others"
+              :key="list.id"
+              class="flex items-center gap-3 rounded-xl border border-slate-800 bg-slate-900/60 p-3 transition-colors hover:border-indigo-500/60 hover:bg-slate-800/60"
+            >
+              <RouterLink :to="{ name: 'list', params: { listaId: list.id } }" class="flex min-w-0 flex-1 items-center gap-3">
+                <ListPosterStack :posters="list.preview_posters" />
+                <div class="min-w-0">
+                  <h3 class="truncate font-semibold">{{ list.name }}</h3>
+                  <p class="text-sm text-slate-400">{{ list.item_count }} {{ list.item_count === 1 ? 'obra' : 'obras' }}</p>
+                </div>
+              </RouterLink>
+              <ListActionsMenu :list-name="list.name" :can-delete="!list.is_default" @edit="openEdit(list)" @remove="deleting = list" />
+            </li>
+          </ul>
+        </div>
       </div>
     </section>
 
@@ -195,10 +202,10 @@ async function onConfirmDelete() {
 
     <CommunityTimeline />
 
-    <div class="mt-10 max-w-md min-[1700px]:hidden">
+    <div class="mt-10 w-full min-[1700px]:hidden">
       <RecentAdditionsWidget />
     </div>
-    <div class="mt-6 max-w-md min-[1700px]:hidden">
+    <div class="mt-6 w-full min-[1700px]:hidden">
       <RecentMembersWidget />
     </div>
 

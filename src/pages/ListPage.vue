@@ -138,8 +138,8 @@ watch(listId, load, { immediate: true })
       </p>
       <p v-else-if="filtered.length === 0" class="mt-6 text-sm text-slate-400">Nenhuma obra corresponde aos filtros.</p>
 
-      <ul v-else class="mt-5 grid gap-3 sm:grid-cols-2">
-        <li v-for="item in sorted" :key="item.id" class="relative">
+      <ul v-else class="mt-5 grid grid-cols-[minmax(0,1fr)] gap-3 sm:grid-cols-[repeat(2,minmax(0,1fr))]">
+        <li v-for="item in sorted" :key="item.id" class="relative min-w-0">
           <RouterLink
             :to="{ name: 'list-item', params: { listaId: listId, vinculoId: item.id } }"
             :class="[

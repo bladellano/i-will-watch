@@ -2,6 +2,8 @@
 import { onMounted, useId } from 'vue'
 import { Users } from 'lucide-vue-next'
 import CopyToListSelect from '@/modules/lists/components/CopyToListSelect.vue'
+import CollapseToggle from '@/components/ui/CollapseToggle.vue'
+import { useCollapsible } from '@/composables/useCollapsible'
 import MediaDetailsDialog from '@/modules/media/components/MediaDetailsDialog.vue'
 import { useTimelineStore } from '../stores/timeline.store'
 import type { TimelineFilter } from '../types'
@@ -11,6 +13,7 @@ import TimelineWatchingCard from './TimelineWatchingCard.vue'
 
 const store = useTimelineStore()
 const headingId = useId()
+const { open, contentId, toggle } = useCollapsible()
 
 const FILTERS: { value: TimelineFilter; label: string }[] = [
   { value: 'all', label: 'Todas' },
@@ -35,7 +38,9 @@ onMounted(() => {
       <div class="flex items-center gap-3">
         <Users class="size-5 shrink-0 text-indigo-300" aria-hidden="true" />
         <div>
-          <h2 :id="headingId" class="text-base font-semibold tracking-tight text-slate-100">Timeline da comunidade</h2>
+          <h2 :id="headingId" class="text-base font-semibold tracking-tight text-slate-100">
+            <CollapseToggle :expanded="open" :controls="contentId" @toggle="toggle">Timeline da comunidade</CollapseToggle>
+          </h2>
           <p class="text-xs text-slate-400">O que os membros estão comentando e curtindo.</p>
         </div>
       </div>
@@ -58,48 +63,50 @@ onMounted(() => {
       </div>
     </header>
 
-    <ul v-if="store.loading && !store.loaded" class="divide-y divide-slate-800/70" aria-busy="true" aria-label="Carregando">
-      <li v-for="n in 3" :key="n" class="flex animate-pulse gap-3 px-4 py-4 motion-reduce:animate-none">
-        <div class="size-10 shrink-0 rounded-full bg-slate-800" />
-        <div class="flex-1 space-y-2 py-1">
-          <div class="h-3 w-2/3 rounded bg-slate-800" />
-          <div class="h-12 w-full rounded bg-slate-800/70" />
-        </div>
-      </li>
-    </ul>
+    <div :id="contentId" v-show="open">
+      <ul v-if="store.loading && !store.loaded" class="divide-y divide-slate-800/70" aria-busy="true" aria-label="Carregando">
+        <li v-for="n in 3" :key="n" class="flex animate-pulse gap-3 px-4 py-4 motion-reduce:animate-none">
+          <div class="size-10 shrink-0 rounded-full bg-slate-800" />
+          <div class="flex-1 space-y-2 py-1">
+            <div class="h-3 w-2/3 rounded bg-slate-800" />
+            <div class="h-12 w-full rounded bg-slate-800/70" />
+          </div>
+        </li>
+      </ul>
 
-    <div v-else-if="store.error && !store.loaded" role="alert" class="px-4 py-4 text-sm text-red-400">
-      {{ store.error }}
-      <button type="button" class="ml-1 underline underline-offset-2" @click="store.load(true)">Tentar de novo</button>
-    </div>
-
-    <p v-else-if="store.isEmpty" class="px-4 py-5 text-sm text-slate-400">{{ EMPTY_TEXT[store.filter] }}</p>
-
-    <template v-else>
-      <ol class="divide-y divide-slate-800/70" :aria-busy="store.loading">
-        <template v-for="event in store.items" :key="event.event_id">
-          <TimelineCommentCard v-if="event.event_type === 'comment'" :event="event" />
-          <TimelineWatchingCard v-else-if="event.event_type === 'watching'" :event="event" />
-          <TimelineLikeCard v-else :event="event" />
-        </template>
-      </ol>
-
-      <p v-if="store.actionError" role="alert" class="border-t border-slate-800 px-4 py-2 text-xs text-red-400">
-        {{ store.actionError }}
-      </p>
-
-      <div v-if="store.hasMore || store.moreError" class="border-t border-slate-800 px-4 py-3 text-center">
-        <p v-if="store.moreError" role="alert" class="mb-2 text-sm text-red-400">{{ store.moreError }}</p>
-        <button
-          type="button"
-          :disabled="store.loadingMore"
-          class="rounded-lg border border-slate-700 px-4 py-2 text-sm hover:bg-slate-800 disabled:opacity-50"
-          @click="store.loadMore()"
-        >
-          {{ store.loadingMore ? 'Carregando…' : store.moreError ? 'Tentar de novo' : 'Carregar mais' }}
-        </button>
+      <div v-else-if="store.error && !store.loaded" role="alert" class="px-4 py-4 text-sm text-red-400">
+        {{ store.error }}
+        <button type="button" class="ml-1 underline underline-offset-2" @click="store.load(true)">Tentar de novo</button>
       </div>
-    </template>
+
+      <p v-else-if="store.isEmpty" class="px-4 py-5 text-sm text-slate-400">{{ EMPTY_TEXT[store.filter] }}</p>
+
+      <template v-else>
+        <ol class="divide-y divide-slate-800/70" :aria-busy="store.loading">
+          <template v-for="event in store.items" :key="event.event_id">
+            <TimelineCommentCard v-if="event.event_type === 'comment'" :event="event" />
+            <TimelineWatchingCard v-else-if="event.event_type === 'watching'" :event="event" />
+            <TimelineLikeCard v-else :event="event" />
+          </template>
+        </ol>
+
+        <p v-if="store.actionError" role="alert" class="border-t border-slate-800 px-4 py-2 text-xs text-red-400">
+          {{ store.actionError }}
+        </p>
+
+        <div v-if="store.hasMore || store.moreError" class="border-t border-slate-800 px-4 py-3 text-center">
+          <p v-if="store.moreError" role="alert" class="mb-2 text-sm text-red-400">{{ store.moreError }}</p>
+          <button
+            type="button"
+            :disabled="store.loadingMore"
+            class="rounded-lg border border-slate-700 px-4 py-2 text-sm hover:bg-slate-800 disabled:opacity-50"
+            @click="store.loadMore()"
+          >
+            {{ store.loadingMore ? 'Carregando…' : store.moreError ? 'Tentar de novo' : 'Carregar mais' }}
+          </button>
+        </div>
+      </template>
+    </div>
   </section>
   <MediaDetailsDialog :media="store.details" @close="store.closeDetails()">
     <template #actions>
