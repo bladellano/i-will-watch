@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { MAX_RECIPIENTS_PER_RUN, parseSendRequest, selectRecipients } from '../../../supabase/functions/_shared/email-audience'
 import { APP_GOALS, buildEmail, isEmailType } from '../../../supabase/functions/_shared/email-templates'
+import { OCCASIONS } from '../../../supabase/functions/_shared/seasonal'
 
 const NOW = Date.parse('2026-11-15T00:00:00Z')
 
@@ -8,13 +9,13 @@ describe('e-mails para membros: pedido de envio', () => {
   it('não envia por padrão: dry_run implícito é true', () => {
     expect(parseSendRequest({ type: 'lembrete', to: 'all' })).toEqual({
       ok: true,
-      request: { type: 'lembrete', to: 'all', dryRun: true },
+      request: { type: 'lembrete', to: 'all', dryRun: true, occasion: null },
     })
   })
 
   it('só envia com "dry_run": false explícito', () => {
     const result = parseSendRequest({ type: 'lembrete', to: 'all', dry_run: false })
-    expect(result).toEqual({ ok: true, request: { type: 'lembrete', to: 'all', dryRun: false } })
+    expect(result).toEqual({ ok: true, request: { type: 'lembrete', to: 'all', dryRun: false, occasion: null } })
   })
 
   it('rejeita tipo desconhecido, destinatário inválido e dry_run não booleano', () => {
@@ -83,5 +84,30 @@ describe('buildEmail: lembrete', () => {
     const email = buildEmail('lembrete', { email: 'b@x.com', name: 'Bia\r\nBcc: x@y.com' }, { appUrl: null })
     expect(email.subject).not.toMatch(/[\r\n]/)
     expect(email.text).not.toMatch(/Bcc: x@y\.com/)
+  })
+})
+
+describe('e-mail sazonal', () => {
+  const items = [1, 2, 3, 4, 5].map((n) => ({ title: `Obra ${n}`, mediaType: n % 2 ? 'movie' : 'tv' }))
+
+  it('exige uma ocasião conhecida', () => {
+    expect(parseSendRequest({ type: 'sazonal', to: 'all' }).ok).toBe(false)
+    expect(parseSendRequest({ type: 'sazonal', to: 'all', occasion: 'halloween' }).ok).toBe(false)
+    expect(parseSendRequest({ type: 'sazonal', to: 'all', occasion: 'natal' })).toEqual({
+      ok: true,
+      request: { type: 'sazonal', to: 'all', dryRun: true, occasion: 'natal' },
+    })
+  })
+
+  it('combina a chamada da ocasião com as sugestões', () => {
+    const email = buildEmail('sazonal', { email: 'a@x.com', name: 'Ana', recentItems: items }, { appUrl: null, occasion: 'natal' })
+    expect(email.subject).toBe(OCCASIONS.natal.subject)
+    expect(email.text).toContain(OCCASIONS.natal.headline)
+    expect(email.text).toContain('5. Filme: Obra 5')
+    expect(email.html).toContain(`<p>${OCCASIONS.natal.headline}</p>`)
+  })
+
+  it('falha sem ocasião', () => {
+    expect(() => buildEmail('sazonal', { email: 'a@x.com', name: null, recentItems: items }, { appUrl: null })).toThrow()
   })
 })

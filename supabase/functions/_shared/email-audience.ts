@@ -1,5 +1,6 @@
 // Regras de destinatários e validação do pedido de envio. Funções puras (sem imports de runtime).
 import { EMAIL_TYPES, isEmailType, type EmailType, type Recipient } from './email-templates.ts'
+import { isOccasion, OCCASION_NAMES, type Occasion } from './seasonal.ts'
 
 /** Limite de segurança por execução: evita disparos em massa acidentais e respeita o limite diário do SMTP. */
 export const MAX_RECIPIENTS_PER_RUN = 200
@@ -21,6 +22,8 @@ export interface SendRequest {
   to: 'all' | string
   /** Padrão true: só envia com "dry_run": false explícito. */
   dryRun: boolean
+  /** Só para o tipo 'sazonal'. */
+  occasion: Occasion | null
 }
 
 export type ParsedRequest = { ok: true; request: SendRequest } | { ok: false; error: string }
@@ -44,7 +47,15 @@ export function parseSendRequest(body: unknown): ParsedRequest {
     return { ok: false, error: 'dry_run deve ser verdadeiro ou falso.' }
   }
 
-  return { ok: true, request: { type: raw.type, to, dryRun: raw.dry_run !== false } }
+  let occasion: Occasion | null = null
+  if (raw.type === 'sazonal') {
+    if (!isOccasion(raw.occasion)) {
+      return { ok: false, error: `Ocasião inválida. Use uma de: ${OCCASION_NAMES.join(', ')}.` }
+    }
+    occasion = raw.occasion
+  }
+
+  return { ok: true, request: { type: raw.type, to, dryRun: raw.dry_run !== false, occasion } }
 }
 
 /**

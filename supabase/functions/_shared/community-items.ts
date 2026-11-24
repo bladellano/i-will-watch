@@ -52,17 +52,21 @@ export async function fetchSharedAdditions(admin: SupabaseClient): Promise<Share
 }
 
 /**
- * Escolhe até COMMUNITY_ITEMS_LIMIT obras para um destinatário: ignora as adições dele mesmo e não repete a mesma obra.
+ * Escolhe até `limit` obras para um destinatário: ignora as adições dele mesmo e não repete a mesma obra.
  * Recebe a lista já ordenada (mais recente primeiro).
  */
-export function pickSharedItemsFor(additions: SharedAddition[], recipientId: string): RecentItem[] {
+export function pickSharedItemsFor(
+  additions: SharedAddition[],
+  recipientId: string,
+  limit: number = COMMUNITY_ITEMS_LIMIT,
+): RecentItem[] {
   const seen = new Set<string>()
   const items: RecentItem[] = []
   for (const addition of additions) {
     if (addition.ownerId === recipientId || seen.has(addition.mediaId)) continue
     seen.add(addition.mediaId)
     items.push(addition.item)
-    if (items.length === COMMUNITY_ITEMS_LIMIT) break
+    if (items.length === limit) break
   }
   return items
 }

@@ -1,6 +1,12 @@
 import { createAdminClient } from '../_shared/auth.ts'
 import { type AuthUserLike, MAX_RECIPIENTS_PER_RUN, parseSendRequest, selectRecipients } from '../_shared/email-audience.ts'
-import { buildEmail, type EmailType, type Recipient, TYPES_WITH_RECENT_ITEMS } from '../_shared/email-templates.ts'
+import {
+  buildEmail,
+  type EmailType,
+  type Recipient,
+  SEASONAL_ITEMS_LIMIT,
+  TYPES_WITH_RECENT_ITEMS,
+} from '../_shared/email-templates.ts'
 import { corsHeaders, errorResponse, json, readJson } from '../_shared/http.ts'
 import { sendMail, smtpConfigured } from '../_shared/mail.ts'
 import { fetchSharedAdditions, pickSharedItemsFor } from '../_shared/community-items.ts'
@@ -22,7 +28,7 @@ Deno.serve(async (req) => {
 
   const parsed = parseSendRequest(await readJson(req))
   if (!parsed.ok) return errorResponse(400, parsed.error)
-  const { type, to, dryRun } = parsed.request
+  const { type, to, dryRun, occasion } = parsed.request
 
   if (!dryRun && !smtpConfigured()) return errorResponse(500, 'Envio de e-mails não configurado.')
 
@@ -50,13 +56,13 @@ Deno.serve(async (req) => {
   }
 
   // Os e-mails dos membros nunca voltam na resposta: só contagens.
-  const summary = { ok: true, type, dry_run: dryRun, recipients: recipients.length, sent: 0, failed: 0 }
+  const summary = { ok: true, type, occasion, dry_run: dryRun, recipients: recipients.length, sent: 0, failed: 0 }
   if (dryRun) return json(summary)
 
   const appUrl = Deno.env.get('APP_URL') ?? null
   for (const recipient of recipients) {
     try {
-      await sendMail({ to: recipient.email, ...buildEmail(type, recipient, { appUrl }) })
+      await sendMail({ to: recipient.email, ...buildEmail(type, recipient, { appUrl, occasion }) })
       summary.sent++
     } catch (error) {
       summary.failed++
@@ -71,12 +77,17 @@ async function withRecipientData(type: EmailType, recipients: Recipient[]): Prom
   if (!TYPES_WITH_RECENT_ITEMS.includes(type)) return recipients
   const admin = createAdminClient()
 
-  if (type === 'obras_comunidade') {
+  if (type === 'obras_comunidade' || type === 'sazonal') {
     // Uma só leitura para todos; cada destinatário recebe as obras dos outros membros que compartilham.
     const additions = await fetchSharedAdditions(admin)
+    const seasonal = type === 'sazonal'
     return recipients.flatMap((recipient) => {
       if (!recipient.id) return []
-      const recentItems = pickSharedItemsFor(additions, recipient.id)
+      const picked = seasonal
+        ? pickSharedItemsFor(additions, recipient.id, SEASONAL_ITEMS_LIMIT)
+        : pickSharedItemsFor(additions, recipient.id)
+      // No sazonal o foco é a sugestão: sem o nome de quem adicionou.
+      const recentItems = seasonal ? picked.map(({ title, mediaType }) => ({ title, mediaType })) : picked
       return recentItems.length > 0 ? [{ ...recipient, recentItems }] : []
     })
   }

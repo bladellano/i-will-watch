@@ -4,6 +4,7 @@
 //   Simulação (padrão, não envia):  npm run email -- --tipo lembrete --para todos
 //   Envio real (pede confirmação):  npm run email -- --tipo lembrete --para todos --enviar
 //   Um só membro:                   npm run email -- --tipo lembrete --para pessoa@exemplo.com --enviar
+//   Sazonal (precisa da ocasião):   npm run email -- --tipo sazonal --ocasiao natal --para todos
 //
 // Variáveis no terminal (nunca no código nem no repositório):
 //   MAIL_ADMIN_SECRET   o mesmo valor definido nos secrets da função
@@ -17,6 +18,7 @@ const { values } = parseArgs({
     tipo: { type: 'string', default: 'lembrete' },
     para: { type: 'string', default: 'todos' },
     enviar: { type: 'boolean', default: false },
+    ocasiao: { type: 'string' },
   },
 })
 
@@ -32,7 +34,7 @@ const dryRun = !values.enviar
 
 if (!dryRun) {
   const rl = createInterface({ input: process.stdin, output: process.stdout })
-  const answer = await rl.question(`Enviar "${values.tipo}" para ${values.para}? Digite ENVIAR para confirmar: `)
+  const answer = await rl.question(`Enviar "${values.tipo}${values.ocasiao ? ` (${values.ocasiao})` : ''}" para ${values.para}? Digite ENVIAR para confirmar: `)
   rl.close()
   if (answer.trim() !== 'ENVIAR') {
     console.log('Cancelado. Nada foi enviado.')
@@ -43,7 +45,7 @@ if (!dryRun) {
 const response = await fetch(`${baseUrl.replace(/\/$/, '')}/functions/v1/send-member-email`, {
   method: 'POST',
   headers: { 'Content-Type': 'application/json', 'x-admin-secret': secret },
-  body: JSON.stringify({ type: values.tipo, to, dry_run: dryRun }),
+  body: JSON.stringify({ type: values.tipo, to, dry_run: dryRun, occasion: values.ocasiao }),
 })
 const body = await response.json().catch(() => ({}))
 if (!response.ok) console.error(`Erro ${response.status}`)

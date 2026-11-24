@@ -1,5 +1,6 @@
 // Modelos de e-mail para membros. Funções puras (sem imports): testáveis fora do Deno.
 // Para criar um novo tipo: acrescente o nome em EMAIL_TYPES e um construtor em BUILDERS.
+import { OCCASIONS, type Occasion } from './seasonal.ts'
 
 /** Título recente exibido em e-mails de lista. memberName só existe em obras da comunidade. */
 export interface RecentItem {
@@ -26,6 +27,8 @@ export interface EmailContent {
 export interface BuildOptions {
   /** Endereço do app (secret APP_URL). Se ausente, o e-mail não traz link. */
   appUrl: string | null
+  /** Ocasião do e-mail sazonal (obrigatória só para o tipo 'sazonal'). */
+  occasion?: Occasion | null
 }
 
 export const APP_NAME = 'Minha lista de filmes e séries'
@@ -52,11 +55,14 @@ export const RECENT_ITEMS_EMAIL_LIMIT = 5
 /** Quantos títulos entram no e-mail de obras da comunidade. */
 export const COMMUNITY_ITEMS_LIMIT = 15
 
-export const EMAIL_TYPES = ['lembrete', 'ultimas_adicoes', 'obras_comunidade'] as const
+/** Quantas sugestões do catálogo entram no e-mail sazonal. */
+export const SEASONAL_ITEMS_LIMIT = 5
+
+export const EMAIL_TYPES = ['lembrete', 'ultimas_adicoes', 'obras_comunidade', 'sazonal'] as const
 export type EmailType = (typeof EMAIL_TYPES)[number]
 
 /** Tipos que precisam de itens recentes antes do envio. */
-export const TYPES_WITH_RECENT_ITEMS: readonly EmailType[] = ['ultimas_adicoes', 'obras_comunidade']
+export const TYPES_WITH_RECENT_ITEMS: readonly EmailType[] = ['ultimas_adicoes', 'obras_comunidade', 'sazonal']
 
 export function isEmailType(value: unknown): value is EmailType {
   return typeof value === 'string' && (EMAIL_TYPES as readonly string[]).includes(value)
@@ -143,7 +149,7 @@ function buildListEmail(recipient: Recipient, options: BuildOptions, copy: ListC
 
   const html = [
     `<p>${escapeHtml(hello)}</p>`,
-    `<p>${escapeHtml(copy.intro)}</p>`,
+    ...copy.intro.split('\n\n').map((paragraph) => `<p>${escapeHtml(paragraph)}</p>`),
     '<ol>',
     ...items.map((item) => `<li>${escapeHtml(itemLabel(item))}</li>`),
     '</ol>',
@@ -169,6 +175,15 @@ const BUILDERS: Record<EmailType, (recipient: Recipient, options: BuildOptions) 
       intro: 'Estas são as obras adicionadas mais recentemente por outros membros que compartilham suas listas:',
       closing: 'Veja se alguma delas já está na sua lista ou registre a sua próxima indicação. Acesse o app quando quiser.',
     }),
+  sazonal: (recipient, options) => {
+    if (!options.occasion) throw new Error('Ocasião não informada para o e-mail sazonal.')
+    const copy = OCCASIONS[options.occasion]
+    return buildListEmail(recipient, options, {
+      subject: copy.subject,
+      intro: `${copy.headline}\n\n${copy.suggestionsIntro}`,
+      closing: 'Abra o app, inclua as que chamarem sua atenção e deixe sua lista pronta para a ocasião.',
+    })
+  },
 }
 
 export function buildEmail(type: EmailType, recipient: Recipient, options: BuildOptions): EmailContent {
